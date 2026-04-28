@@ -7,8 +7,8 @@ WORKDIR /app/frontend
 
 # Build-time args (public env vars baked into the Next.js build).
 # These are visible in the browser bundle — never put secrets here.
-ARG NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
-ARG NEXT_PUBLIC_WS_BASE_URL=ws://localhost:8000
+ARG NEXT_PUBLIC_API_BASE_URL
+ARG NEXT_PUBLIC_WS_BASE_URL
 ARG NEXT_PUBLIC_CESIUM_ION_TOKEN
 
 ENV NEXT_PUBLIC_API_BASE_URL=${NEXT_PUBLIC_API_BASE_URL}

@@ -82,6 +82,8 @@ export interface IntelligenceClientOptions {
   signal?: AbortSignal;
 }
 
+const PRODUCTION_API_URL = "https://thesphere-production-4aea.up.railway.app";
+
 function resolveBaseUrl(explicit: string | undefined): string {
   if (explicit) {
     return explicit.replace(/\/$/, "");
@@ -89,8 +91,16 @@ function resolveBaseUrl(explicit: string | undefined): string {
   if (typeof process !== "undefined" && process.env?.NEXT_PUBLIC_API_BASE_URL) {
     return process.env.NEXT_PUBLIC_API_BASE_URL.replace(/\/$/, "");
   }
+  // In the browser, detect whether we're running in production (i.e. not on
+  // localhost / 127.0.0.1). NEXT_PUBLIC vars are baked at build time, so when
+  // Railway doesn't pass the build arg the env var is empty and we fall through
+  // to this runtime check instead of calling localhost from the user's browser.
   if (typeof window !== "undefined") {
-    return `${window.location.protocol}//${window.location.hostname}:8000`;
+    const host = window.location.hostname;
+    if (host !== "localhost" && host !== "127.0.0.1") {
+      return PRODUCTION_API_URL;
+    }
+    return `${window.location.protocol}//${host}:8000`;
   }
   return "http://localhost:8000";
 }
