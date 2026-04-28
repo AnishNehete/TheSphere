@@ -26,18 +26,12 @@ Example questions:
 
 | View | Placeholder |
 |---|---|
-| 🌍 Hero Globe | `assets/screenshots/globe-hero.png` |
-| 🔎 Search Investigation | `assets/screenshots/search-flow.png` |
-| 🔗 Causal Chain | `assets/screenshots/causal-chain.png` |
-| 📊 Portfolio Impact | `assets/screenshots/portfolio-impact.png` |
-| 📈 Market Tape + Charts | `assets/screenshots/market-surface.png` |
-| 🧭 Compare Mode | `assets/screenshots/compare-mode.png` |
+| 🌍 Hero Globe | <img width="1919" height="837" alt="image" src="https://github.com/user-attachments/assets/5a10e1af-a161-4880-b9d9-22531e9cb502" /> |
+| 🔎 Search Investigation | <img width="1917" height="859" alt="image" src="https://github.com/user-attachments/assets/1647c249-75f1-4782-9cc0-41a459538d7b" />|
+| 🔗 Causal Chain | <img width="1919" height="828" alt="image" src="https://github.com/user-attachments/assets/921d7a7b-6f4e-4696-900b-c1acb25d2f73" />|
+| 📈 Market Tape + Charts | <img width="1919" height="847" alt="image" src="https://github.com/user-attachments/assets/af65f40b-7265-4b30-b2f0-a6a31094e4d3" />|
+| 🧭 Compare Mode | <img width="1919" height="845" alt="image" src="https://github.com/user-attachments/assets/acf6d8b7-dcf3-4c0c-a218-ad104b97d35c" />|
 
-```markdown
-![Sphere Hero Globe](assets/screenshots/globe-hero.png)
-![Sphere Investigation Flow](assets/screenshots/search-flow.png)
-![Sphere Causal Chain](assets/screenshots/causal-chain.png)
-```
 
 ---
 
