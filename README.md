@@ -1,5 +1,6 @@
-# 🌍 Sphere
+# 🌍 Sphere 
 
+https://thesphere.icu/
 > **A search-first global intelligence platform for understanding what is happening in the world, why it matters, and what it could impact next.**
 
 Sphere is a full-stack investigation platform that combines a photorealistic 3D globe, live global signals, market intelligence, calibrated retrieval, causal reasoning, and portfolio-impact analysis.
