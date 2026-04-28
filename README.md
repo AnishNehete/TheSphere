@@ -28,7 +28,7 @@ Example questions:
 |---|---|
 | 🌍 Hero Globe | <img width="1919" height="859" alt="image" src="https://github.com/user-attachments/assets/d4e84a63-8abb-488d-8c5d-54cf2547d98f" /> /> |
 | 🔎 Search Investigation | <img width="1917" height="859" alt="image" src="https://github.com/user-attachments/assets/1647c249-75f1-4782-9cc0-41a459538d7b" />|
-| 🔗 Causal Chain | <img width="1919" height="828" alt="image" src="https://github.com/user-attachments/assets/921d7a7b-6f4e-4696-900b-c1acb25d2f73" />|
+| 🔗 Causal Chain | <img width="1908" height="904" alt="image" src="https://github.com/user-attachments/assets/bd7497b6-388a-4446-8a8d-49f5c3423051" />|
 | 📈 Market Tape + Charts | <img width="1919" height="847" alt="image" src="https://github.com/user-attachments/assets/af65f40b-7265-4b30-b2f0-a6a31094e4d3" />|
 | 🧭 Compare Mode | <img width="1919" height="845" alt="image" src="https://github.com/user-attachments/assets/acf6d8b7-dcf3-4c0c-a218-ad104b97d35c" />|
 
