@@ -86,13 +86,41 @@ function resolveBaseUrl(explicit: string | undefined): string {
   if (explicit) {
     return explicit.replace(/\/$/, "");
   }
+
+  // Priority 1: NEXT_PUBLIC_API_BASE_URL
   if (typeof process !== "undefined" && process.env?.NEXT_PUBLIC_API_BASE_URL) {
     return process.env.NEXT_PUBLIC_API_BASE_URL.replace(/\/$/, "");
   }
+
+  // Priority 2: NEXT_PUBLIC_API_URL
+  if (typeof process !== "undefined" && process.env?.NEXT_PUBLIC_API_URL) {
+    return process.env.NEXT_PUBLIC_API_URL.replace(/\/$/, "");
+  }
+
+  // Priority 3: localhost for development
   if (typeof window !== "undefined") {
     return `${window.location.protocol}//${window.location.hostname}:8000`;
   }
+
   return "http://localhost:8000";
+}
+
+function getWebSocketUrl(): string {
+  // Priority 1: NEXT_PUBLIC_WS_URL
+  if (typeof process !== "undefined" && process.env?.NEXT_PUBLIC_WS_URL) {
+    return process.env.NEXT_PUBLIC_WS_URL;
+  }
+
+  // Priority 2: Derive from API URL
+  const apiUrl = resolveBaseUrl(undefined);
+  if (apiUrl.startsWith("https://")) {
+    return apiUrl.replace("https://", "wss://");
+  }
+  if (apiUrl.startsWith("http://")) {
+    return apiUrl.replace("http://", "ws://");
+  }
+
+  return "ws://localhost:8000";
 }
 
 async function request<T>(
