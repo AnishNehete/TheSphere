@@ -14,14 +14,14 @@ RUN uv sync --no-dev
 
 EXPOSE 8000
 
-# Phase 17C beta-hardening — container-level liveness probe so docker
-# compose / orchestrators can restart the backend if /health stops
-# answering. The intelligence/health endpoint already exists and is
-# cheap (no DB hit by default).
+# Container-level liveness probe. /health is cheap and does not depend
+# on intelligence runtime readiness, so the container reports healthy
+# as soon as FastAPI is serving.
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
-  CMD python -c "import urllib.request, sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/api/intelligence/health', timeout=4).status == 200 else 1)" || exit 1
+  CMD python -c "import os, urllib.request, sys; port=os.environ.get('PORT','8000'); sys.exit(0 if urllib.request.urlopen(f'http://127.0.0.1:{port}/health', timeout=4).status == 200 else 1)" || exit 1
 
-# Phase 19E — run Alembic migrations against INTELLIGENCE_DATABASE_URL
-# before serving so investigation/alert tables exist on first boot.
-# Migrations are idempotent (alembic tracks revision in alembic_version).
-CMD ["sh", "-c", "uv run alembic upgrade head && uv run uvicorn app.main:app --host 0.0.0.0 --port 8000"]
+# Run Alembic migrations against INTELLIGENCE_DATABASE_URL before serving
+# so investigation/alert tables exist on first boot. Migrations are
+# idempotent. Honors $PORT so Railway / Heroku-style platforms inject
+# their own port.
+CMD ["sh", "-c", "uv run alembic upgrade head && uv run uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]

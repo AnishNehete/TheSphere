@@ -27,4 +27,6 @@ RUN pnpm build
 
 EXPOSE 3000
 
-CMD ["pnpm", "start", "--hostname", "0.0.0.0", "--port", "3000"]
+# Honor $PORT so Railway / similar platforms can inject their bound port
+# while still defaulting to 3000 for local docker compose runs.
+CMD ["sh", "-c", "pnpm start --hostname 0.0.0.0 --port ${PORT:-3000}"]

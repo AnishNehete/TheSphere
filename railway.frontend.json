@@ -1,0 +1,12 @@
+{
+  "$schema": "https://railway.app/railway.schema.json",
+  "build": {
+    "builder": "DOCKERFILE",
+    "dockerfilePath": "infra/docker/frontend.Dockerfile"
+  },
+  "deploy": {
+    "startCommand": "pnpm start --hostname 0.0.0.0 --port ${PORT:-3000}",
+    "restartPolicyType": "ON_FAILURE",
+    "restartPolicyMaxRetries": 5
+  }
+}

@@ -9,6 +9,20 @@ test-results
 __pycache__
 *.pyc
 .DS_Store
+
+# Environment files — never commit secrets. Track only the template.
 .env
-.env.local
+.env.*
+!.env.example
+
+# Local Claude / editor scratch
+.claude/
+.idea/
+.vscode/
+
+# Stray dev logs and audit artifacts
 backend/.venv
+backend/*.log
+frontend/audit-start.*
+frontend/border-pass*
+frontend/*-shell.png
