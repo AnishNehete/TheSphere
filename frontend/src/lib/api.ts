@@ -44,14 +44,22 @@ interface ApiQueryResult {
 }
 
 function getApiBaseUrl() {
+  // Explicit override always wins (set this env var in Railway to point at the
+  // internal backend DNS, e.g. http://thesphere.railway.internal:8000).
   if (process.env.NEXT_PUBLIC_API_BASE_URL) {
     return process.env.NEXT_PUBLIC_API_BASE_URL;
   }
 
-  if (typeof window !== "undefined") {
-    return `${window.location.protocol}//${window.location.hostname}:8000`;
+  // Server-side (SSR / RSC): use the Railway-internal DNS so the request never
+  // leaves the private network.  Falls back to the well-known internal address
+  // when SPHERE_BACKEND_URL is not explicitly configured.
+  if (typeof window === "undefined") {
+    return (
+      process.env.SPHERE_BACKEND_URL ?? "http://thesphere.railway.internal:8000"
+    );
   }
 
+  // Client-side in local development: proxy through localhost.
   return "http://localhost:8000";
 }
 
