@@ -1,0 +1,1082 @@
+﻿[
+    {
+        "iso3":  "AFG",
+        "name":  "Afghanistan",
+        "lon":  67.691087,
+        "lat":  34.803654
+    },
+    {
+        "iso3":  "AGO",
+        "name":  "Angola",
+        "lon":  17.439875,
+        "lat":  -10.935099
+    },
+    {
+        "iso3":  "ALB",
+        "name":  "Albania",
+        "lon":  20.109588,
+        "lat":  41.273218
+    },
+    {
+        "iso3":  "ARE",
+        "name":  "United Arab Emirates",
+        "lon":  54.243401,
+        "lat":  24.195379
+    },
+    {
+        "iso3":  "ARG",
+        "name":  "Argentina",
+        "lon":  -66.976338,
+        "lat":  -54.456608
+    },
+    {
+        "iso3":  "ARM",
+        "name":  "Armenia",
+        "lon":  45.164244,
+        "lat":  40.061563
+    },
+    {
+        "iso3":  "ATA",
+        "name":  "Antarctica",
+        "lon":  -62.412047,
+        "lat":  -80.39289
+    },
+    {
+        "iso3":  "ATF",
+        "name":  "French Southern and Antarctic Lands",
+        "lon":  69.460833,
+        "lat":  -49.118611
+    },
+    {
+        "iso3":  "AUS",
+        "name":  "Australia",
+        "lon":  146.569039,
+        "lat":  -41.963813
+    },
+    {
+        "iso3":  "AUT",
+        "name":  "Austria",
+        "lon":  13.484573,
+        "lat":  47.644699
+    },
+    {
+        "iso3":  "AZE",
+        "name":  "Azerbaijan",
+        "lon":  45.347278,
+        "lat":  39.378843
+    },
+    {
+        "iso3":  "BDI",
+        "name":  "Burundi",
+        "lon":  29.955377,
+        "lat":  -3.394283
+    },
+    {
+        "iso3":  "BEL",
+        "name":  "Belgium",
+        "lon":  4.39219,
+        "lat":  50.66802
+    },
+    {
+        "iso3":  "BEN",
+        "name":  "Benin",
+        "lon":  2.327253,
+        "lat":  9.8084
+    },
+    {
+        "iso3":  "BFA",
+        "name":  "Burkina Faso",
+        "lon":  -1.850361,
+        "lat":  12.09276
+    },
+    {
+        "iso3":  "BGD",
+        "name":  "Bangladesh",
+        "lon":  90.611321,
+        "lat":  23.398934
+    },
+    {
+        "iso3":  "BGR",
+        "name":  "Bulgaria",
+        "lon":  24.687321,
+        "lat":  42.893661
+    },
+    {
+        "iso3":  "BHS",
+        "name":  "The Bahamas",
+        "lon":  -77.86409,
+        "lat":  24.351449
+    },
+    {
+        "iso3":  "BIH",
+        "name":  "Bosnia and Herzegovina",
+        "lon":  17.892328,
+        "lat":  44.254815
+    },
+    {
+        "iso3":  "BLR",
+        "name":  "Belarus",
+        "lon":  28.11447,
+        "lat":  53.324597
+    },
+    {
+        "iso3":  "BLZ",
+        "name":  "Belize",
+        "lon":  -88.630383,
+        "lat":  17.417165
+    },
+    {
+        "iso3":  "BMU",
+        "name":  "Bermuda",
+        "lon":  -64.770138,
+        "lat":  32.313245
+    },
+    {
+        "iso3":  "BOL",
+        "name":  "Bolivia",
+        "lon":  -64.018702,
+        "lat":  -16.521309
+    },
+    {
+        "iso3":  "BRA",
+        "name":  "Brazil",
+        "lon":  -56.947125,
+        "lat":  -9.638989
+    },
+    {
+        "iso3":  "BRN",
+        "name":  "Brunei",
+        "lon":  114.842627,
+        "lat":  4.628413
+    },
+    {
+        "iso3":  "BTN",
+        "name":  "Bhutan",
+        "lon":  90.615133,
+        "lat":  27.467787
+    },
+    {
+        "iso3":  "BWA",
+        "name":  "Botswana",
+        "lon":  24.37675,
+        "lat":  -22.387777
+    },
+    {
+        "iso3":  "CAF",
+        "name":  "Central African Republic",
+        "lon":  20.507986,
+        "lat":  6.329532
+    },
+    {
+        "iso3":  "CAN",
+        "name":  "Canada",
+        "lon":  -63.356543,
+        "lat":  46.457414
+    },
+    {
+        "iso3":  "CHE",
+        "name":  "Switzerland",
+        "lon":  8.306508,
+        "lat":  46.796854
+    },
+    {
+        "iso3":  "CHL",
+        "name":  "Chile",
+        "lon":  -70.12479,
+        "lat":  -54.167307
+    },
+    {
+        "iso3":  "CHN",
+        "name":  "China",
+        "lon":  109.913291,
+        "lat":  19.23817
+    },
+    {
+        "iso3":  "CIV",
+        "name":  "Ivory Coast",
+        "lon":  -6.233057,
+        "lat":  7.831305
+    },
+    {
+        "iso3":  "CMR",
+        "name":  "Cameroon",
+        "lon":  13.145334,
+        "lat":  6.732652
+    },
+    {
+        "iso3":  "COD",
+        "name":  "Democratic Republic of the Congo",
+        "lon":  23.013604,
+        "lat":  -3.771089
+    },
+    {
+        "iso3":  "COG",
+        "name":  "Republic of the Congo",
+        "lon":  14.815731,
+        "lat":  -1.089301
+    },
+    {
+        "iso3":  "COL",
+        "name":  "Colombia",
+        "lon":  -72.737931,
+        "lat":  4.47665
+    },
+    {
+        "iso3":  "CRI",
+        "name":  "Costa Rica",
+        "lon":  -84.173484,
+        "lat":  9.784893
+    },
+    {
+        "iso3":  "CUB",
+        "name":  "Cuba",
+        "lon":  -79.733095,
+        "lat":  21.722817
+    },
+    {
+        "iso3":  "-99",
+        "name":  "Northern Cyprus",
+        "lon":  33.426547,
+        "lat":  35.177307
+    },
+    {
+        "iso3":  "CYP",
+        "name":  "Cyprus",
+        "lon":  33.326955,
+        "lat":  35.019165
+    },
+    {
+        "iso3":  "CZE",
+        "name":  "Czech Republic",
+        "lon":  15.903554,
+        "lat":  49.706954
+    },
+    {
+        "iso3":  "DEU",
+        "name":  "Germany",
+        "lon":  10.618751,
+        "lat":  51.065506
+    },
+    {
+        "iso3":  "DJI",
+        "name":  "Djibouti",
+        "lon":  42.570794,
+        "lat":  11.810873
+    },
+    {
+        "iso3":  "DNK",
+        "name":  "Denmark",
+        "lon":  11.964727,
+        "lat":  55.546037
+    },
+    {
+        "iso3":  "DOM",
+        "name":  "Dominican Republic",
+        "lon":  -70.493577,
+        "lat":  18.790197
+    },
+    {
+        "iso3":  "DZA",
+        "name":  "Algeria",
+        "lon":  3.349875,
+        "lat":  29.602489
+    },
+    {
+        "iso3":  "ECU",
+        "name":  "Ecuador",
+        "lon":  -78.853896,
+        "lat":  -1.735585
+    },
+    {
+        "iso3":  "EGY",
+        "name":  "Egypt",
+        "lon":  31.51608,
+        "lat":  28.243413
+    },
+    {
+        "iso3":  "ERI",
+        "name":  "Eritrea",
+        "lon":  39.799836,
+        "lat":  14.644882
+    },
+    {
+        "iso3":  "ESP",
+        "name":  "Spain",
+        "lon":  -4.481723,
+        "lat":  40.269064
+    },
+    {
+        "iso3":  "EST",
+        "name":  "Estonia",
+        "lon":  25.709914,
+        "lat":  58.506569
+    },
+    {
+        "iso3":  "ETH",
+        "name":  "Ethiopia",
+        "lon":  39.041643,
+        "lat":  9.101323
+    },
+    {
+        "iso3":  "FIN",
+        "name":  "Finland",
+        "lon":  25.771844,
+        "lat":  65.477076
+    },
+    {
+        "iso3":  "FJI",
+        "name":  "Fiji",
+        "lon":  178.045952,
+        "lat":  -17.724644
+    },
+    {
+        "iso3":  "FLK",
+        "name":  "Falkland Islands",
+        "lon":  -59.585,
+        "lat":  -51.735
+    },
+    {
+        "iso3":  "FRA",
+        "name":  "France",
+        "lon":  9.115104,
+        "lat":  42.166175
+    },
+    {
+        "iso3":  "GAB",
+        "name":  "Gabon",
+        "lon":  11.885481,
+        "lat":  -0.538766
+    },
+    {
+        "iso3":  "GBR",
+        "name":  "United Kingdom",
+        "lon":  -6.714966,
+        "lat":  54.501344
+    },
+    {
+        "iso3":  "GEO",
+        "name":  "Georgia",
+        "lon":  43.43027,
+        "lat":  42.179316
+    },
+    {
+        "iso3":  "GHA",
+        "name":  "Ghana",
+        "lon":  -0.929166,
+        "lat":  8.086746
+    },
+    {
+        "iso3":  "GIN",
+        "name":  "Guinea",
+        "lon":  -10.909396,
+        "lat":  10.348828
+    },
+    {
+        "iso3":  "GMB",
+        "name":  "Gambia",
+        "lon":  -15.295172,
+        "lat":  13.473803
+    },
+    {
+        "iso3":  "GNB",
+        "name":  "Guinea Bissau",
+        "lon":  -15.132555,
+        "lat":  11.908241
+    },
+    {
+        "iso3":  "GNQ",
+        "name":  "Equatorial Guinea",
+        "lon":  10.04748,
+        "lat":  1.407375
+    },
+    {
+        "iso3":  "GRC",
+        "name":  "Greece",
+        "lon":  24.874167,
+        "lat":  35.302454
+    },
+    {
+        "iso3":  "GRL",
+        "name":  "Greenland",
+        "lon":  -41.031456,
+        "lat":  74.147632
+    },
+    {
+        "iso3":  "GTM",
+        "name":  "Guatemala",
+        "lon":  -90.208856,
+        "lat":  15.508186
+    },
+    {
+        "iso3":  "GUF",
+        "name":  "French Guiana",
+        "lon":  -53.418498,
+        "lat":  3.460923
+    },
+    {
+        "iso3":  "GUY",
+        "name":  "Guyana",
+        "lon":  -58.978814,
+        "lat":  4.643209
+    },
+    {
+        "iso3":  "HND",
+        "name":  "Honduras",
+        "lon":  -86.381146,
+        "lat":  14.711019
+    },
+    {
+        "iso3":  "HRV",
+        "name":  "Croatia",
+        "lon":  16.437159,
+        "lat":  44.887555
+    },
+    {
+        "iso3":  "HTI",
+        "name":  "Haiti",
+        "lon":  -72.772901,
+        "lat":  18.849196
+    },
+    {
+        "iso3":  "HUN",
+        "name":  "Hungary",
+        "lon":  19.055116,
+        "lat":  47.414137
+    },
+    {
+        "iso3":  "IDN",
+        "name":  "Indonesia",
+        "lon":  120.256515,
+        "lat":  -9.89896
+    },
+    {
+        "iso3":  "IND",
+        "name":  "India",
+        "lon":  83.444899,
+        "lat":  24.018866
+    },
+    {
+        "iso3":  "IRL",
+        "name":  "Ireland",
+        "lon":  -7.723324,
+        "lat":  53.531523
+    },
+    {
+        "iso3":  "IRN",
+        "name":  "Iran",
+        "lon":  53.41602,
+        "lat":  33.400097
+    },
+    {
+        "iso3":  "IRQ",
+        "name":  "Iraq",
+        "lon":  44.606247,
+        "lat":  33.565823
+    },
+    {
+        "iso3":  "ISL",
+        "name":  "Iceland",
+        "lon":  -19.265977,
+        "lat":  65.278029
+    },
+    {
+        "iso3":  "ISR",
+        "name":  "Israel",
+        "lon":  35.201008,
+        "lat":  32.160298
+    },
+    {
+        "iso3":  "ITA",
+        "name":  "Italy",
+        "lon":  14.388836,
+        "lat":  37.607263
+    },
+    {
+        "iso3":  "JAM",
+        "name":  "Jamaica",
+        "lon":  -77.348052,
+        "lat":  18.187741
+    },
+    {
+        "iso3":  "JOR",
+        "name":  "Jordan",
+        "lon":  36.650725,
+        "lat":  31.132471
+    },
+    {
+        "iso3":  "JPN",
+        "name":  "Japan",
+        "lon":  133.615872,
+        "lat":  33.637082
+    },
+    {
+        "iso3":  "KAZ",
+        "name":  "Kazakhstan",
+        "lon":  65.105951,
+        "lat":  47.201754
+    },
+    {
+        "iso3":  "KEN",
+        "name":  "Kenya",
+        "lon":  37.872121,
+        "lat":  1.217672
+    },
+    {
+        "iso3":  "KGZ",
+        "name":  "Kyrgyzstan",
+        "lon":  73.976759,
+        "lat":  41.363751
+    },
+    {
+        "iso3":  "KHM",
+        "name":  "Cambodia",
+        "lon":  104.948843,
+        "lat":  12.549848
+    },
+    {
+        "iso3":  "KOR",
+        "name":  "South Korea",
+        "lon":  127.581905,
+        "lat":  36.761904
+    },
+    {
+        "iso3":  "CS-KM",
+        "name":  "Kosovo",
+        "lon":  20.965219,
+        "lat":  42.555349
+    },
+    {
+        "iso3":  "KWT",
+        "name":  "Kuwait",
+        "lon":  47.742475,
+        "lat":  29.336788
+    },
+    {
+        "iso3":  "LAO",
+        "name":  "Laos",
+        "lon":  103.634471,
+        "lat":  18.28554
+    },
+    {
+        "iso3":  "LBN",
+        "name":  "Lebanon",
+        "lon":  35.85167,
+        "lat":  33.798193
+    },
+    {
+        "iso3":  "LBR",
+        "name":  "Liberia",
+        "lon":  -9.115773,
+        "lat":  6.63089
+    },
+    {
+        "iso3":  "LBY",
+        "name":  "Libya",
+        "lon":  16.456981,
+        "lat":  28.492244
+    },
+    {
+        "iso3":  "LKA",
+        "name":  "Sri Lanka",
+        "lon":  80.863819,
+        "lat":  7.631441
+    },
+    {
+        "iso3":  "LSO",
+        "name":  "Lesotho",
+        "lon":  28.370332,
+        "lat":  -29.584757
+    },
+    {
+        "iso3":  "LTU",
+        "name":  "Lithuania",
+        "lon":  23.818488,
+        "lat":  55.133185
+    },
+    {
+        "iso3":  "LUX",
+        "name":  "Luxembourg",
+        "lon":  5.981349,
+        "lat":  49.812087
+    },
+    {
+        "iso3":  "LVA",
+        "name":  "Latvia",
+        "lon":  24.656922,
+        "lat":  56.792054
+    },
+    {
+        "iso3":  "MAR",
+        "name":  "Morocco",
+        "lon":  -9.463684,
+        "lat":  28.761615
+    },
+    {
+        "iso3":  "MDA",
+        "name":  "Moldova",
+        "lon":  28.470352,
+        "lat":  47.04664
+    },
+    {
+        "iso3":  "MDG",
+        "name":  "Madagascar",
+        "lon":  46.989215,
+        "lat":  -17.971485
+    },
+    {
+        "iso3":  "MEX",
+        "name":  "Mexico",
+        "lon":  -103.013188,
+        "lat":  23.835365
+    },
+    {
+        "iso3":  "MKD",
+        "name":  "Macedonia",
+        "lon":  21.582212,
+        "lat":  41.646086
+    },
+    {
+        "iso3":  "MLI",
+        "name":  "Mali",
+        "lon":  -5.810731,
+        "lat":  14.108148
+    },
+    {
+        "iso3":  "MLT",
+        "name":  "Malta",
+        "lon":  14.473812,
+        "lat":  35.880213
+    },
+    {
+        "iso3":  "MMR",
+        "name":  "Myanmar",
+        "lon":  97.145208,
+        "lat":  19.997216
+    },
+    {
+        "iso3":  "MNE",
+        "name":  "Montenegro",
+        "lon":  19.431629,
+        "lat":  42.736486
+    },
+    {
+        "iso3":  "MNG",
+        "name":  "Mongolia",
+        "lon":  104.585426,
+        "lat":  47.204515
+    },
+    {
+        "iso3":  "MOZ",
+        "name":  "Mozambique",
+        "lon":  34.865522,
+        "lat":  -17.912593
+    },
+    {
+        "iso3":  "MRT",
+        "name":  "Mauritania",
+        "lon":  -12.299477,
+        "lat":  18.667715
+    },
+    {
+        "iso3":  "MWI",
+        "name":  "Malawi",
+        "lon":  34.126932,
+        "lat":  -12.995803
+    },
+    {
+        "iso3":  "MYS",
+        "name":  "Malaysia",
+        "lon":  102.114698,
+        "lat":  4.342178
+    },
+    {
+        "iso3":  "NAM",
+        "name":  "Namibia",
+        "lon":  17.847777,
+        "lat":  -21.647454
+    },
+    {
+        "iso3":  "NCL",
+        "name":  "New Caledonia",
+        "lon":  165.511658,
+        "lat":  -21.177658
+    },
+    {
+        "iso3":  "NER",
+        "name":  "Niger",
+        "lon":  8.518536,
+        "lat":  15.289918
+    },
+    {
+        "iso3":  "NGA",
+        "name":  "Nigeria",
+        "lon":  8.448601,
+        "lat":  9.705913
+    },
+    {
+        "iso3":  "NIC",
+        "name":  "Nicaragua",
+        "lon":  -85.01747,
+        "lat":  13.081708
+    },
+    {
+        "iso3":  "NLD",
+        "name":  "Netherlands",
+        "lon":  5.585888,
+        "lat":  52.158607
+    },
+    {
+        "iso3":  "NOR",
+        "name":  "Norway",
+        "lon":  18.02759,
+        "lat":  66.264381
+    },
+    {
+        "iso3":  "NPL",
+        "name":  "Nepal",
+        "lon":  84.558654,
+        "lat":  28.209141
+    },
+    {
+        "iso3":  "NZL",
+        "name":  "New Zealand",
+        "lon":  171.091764,
+        "lat":  -43.451375
+    },
+    {
+        "iso3":  "OMN",
+        "name":  "Oman",
+        "lon":  56.655459,
+        "lat":  20.82114
+    },
+    {
+        "iso3":  "PAK",
+        "name":  "Pakistan",
+        "lon":  69.402966,
+        "lat":  30.815219
+    },
+    {
+        "iso3":  "PAN",
+        "name":  "Panama",
+        "lon":  -80.32736,
+        "lat":  8.468009
+    },
+    {
+        "iso3":  "PER",
+        "name":  "Peru",
+        "lon":  -74.077795,
+        "lat":  -7.927869
+    },
+    {
+        "iso3":  "PHL",
+        "name":  "Philippines",
+        "lon":  124.657156,
+        "lat":  7.723619
+    },
+    {
+        "iso3":  "PNG",
+        "name":  "Papua New Guinea",
+        "lon":  155.25577,
+        "lat":  -6.075067
+    },
+    {
+        "iso3":  "POL",
+        "name":  "Poland",
+        "lon":  19.287539,
+        "lat":  51.682448
+    },
+    {
+        "iso3":  "PRI",
+        "name":  "Puerto Rico",
+        "lon":  -66.433505,
+        "lat":  18.275953
+    },
+    {
+        "iso3":  "PRK",
+        "name":  "North Korea",
+        "lon":  127.329094,
+        "lat":  39.885955
+    },
+    {
+        "iso3":  "PRT",
+        "name":  "Portugal",
+        "lon":  -8.038668,
+        "lat":  39.764079
+    },
+    {
+        "iso3":  "PRY",
+        "name":  "Paraguay",
+        "lon":  -57.706847,
+        "lat":  -23.364774
+    },
+    {
+        "iso3":  "QAT",
+        "name":  "Qatar",
+        "lon":  51.151305,
+        "lat":  25.257109
+    },
+    {
+        "iso3":  "ROU",
+        "name":  "Romania",
+        "lon":  25.06276,
+        "lat":  45.911169
+    },
+    {
+        "iso3":  "RUS",
+        "name":  "Russia",
+        "lon":  142.721167,
+        "lat":  50.14216
+    },
+    {
+        "iso3":  "RWA",
+        "name":  "Rwanda",
+        "lon":  29.887923,
+        "lat":  -1.97592
+    },
+    {
+        "iso3":  "ESH",
+        "name":  "Western Sahara",
+        "lon":  -12.032013,
+        "lat":  24.758575
+    },
+    {
+        "iso3":  "SAU",
+        "name":  "Saudi Arabia",
+        "lon":  43.696933,
+        "lat":  23.869037
+    },
+    {
+        "iso3":  "SDN",
+        "name":  "Sudan",
+        "lon":  29.458055,
+        "lat":  12.933765
+    },
+    {
+        "iso3":  "SSD",
+        "name":  "South Sudan",
+        "lon":  30.14223,
+        "lat":  8.104298
+    },
+    {
+        "iso3":  "SEN",
+        "name":  "Senegal",
+        "lon":  -14.591479,
+        "lat":  13.877522
+    },
+    {
+        "iso3":  "SLB",
+        "name":  "Solomon Islands",
+        "lon":  161.928985,
+        "lat":  -10.543878
+    },
+    {
+        "iso3":  "SLE",
+        "name":  "Sierra Leone",
+        "lon":  -11.620067,
+        "lat":  8.507121
+    },
+    {
+        "iso3":  "SLV",
+        "name":  "El Salvador",
+        "lon":  -88.841912,
+        "lat":  13.802653
+    },
+    {
+        "iso3":  "-99",
+        "name":  "Somaliland",
+        "lon":  46.135426,
+        "lat":  10.310383
+    },
+    {
+        "iso3":  "SOM",
+        "name":  "Somalia",
+        "lon":  47.06658,
+        "lat":  6.787069
+    },
+    {
+        "iso3":  "SRB",
+        "name":  "Republic of Serbia",
+        "lon":  20.984143,
+        "lat":  43.819188
+    },
+    {
+        "iso3":  "SUR",
+        "name":  "Suriname",
+        "lon":  -55.971261,
+        "lat":  3.838235
+    },
+    {
+        "iso3":  "SVK",
+        "name":  "Slovakia",
+        "lon":  19.239565,
+        "lat":  48.77628
+    },
+    {
+        "iso3":  "SVN",
+        "name":  "Slovenia",
+        "lon":  14.995378,
+        "lat":  46.107083
+    },
+    {
+        "iso3":  "SWE",
+        "name":  "Sweden",
+        "lon":  16.842175,
+        "lat":  62.911078
+    },
+    {
+        "iso3":  "SWZ",
+        "name":  "Swaziland",
+        "lon":  31.437018,
+        "lat":  -26.420252
+    },
+    {
+        "iso3":  "SYR",
+        "name":  "Syria",
+        "lon":  38.063992,
+        "lat":  35.171003
+    },
+    {
+        "iso3":  "TCD",
+        "name":  "Chad",
+        "lon":  17.83449,
+        "lat":  12.879854
+    },
+    {
+        "iso3":  "TGO",
+        "name":  "Togo",
+        "lon":  0.92057,
+        "lat":  8.629218
+    },
+    {
+        "iso3":  "THA",
+        "name":  "Thailand",
+        "lon":  100.620356,
+        "lat":  13.14816
+    },
+    {
+        "iso3":  "TJK",
+        "name":  "Tajikistan",
+        "lon":  70.864843,
+        "lat":  38.588473
+    },
+    {
+        "iso3":  "TKM",
+        "name":  "Turkmenistan",
+        "lon":  58.618187,
+        "lat":  39.216473
+    },
+    {
+        "iso3":  "TLS",
+        "name":  "East Timor",
+        "lon":  125.905543,
+        "lat":  -8.745536
+    },
+    {
+        "iso3":  "TTO",
+        "name":  "Trinidad and Tobago",
+        "lon":  -61.459375,
+        "lat":  10.47875
+    },
+    {
+        "iso3":  "TUN",
+        "name":  "Tunisia",
+        "lon":  9.841518,
+        "lat":  34.01676
+    },
+    {
+        "iso3":  "TUR",
+        "name":  "Turkey",
+        "lon":  36.604446,
+        "lat":  38.479513
+    },
+    {
+        "iso3":  "TWN",
+        "name":  "Taiwan",
+        "lon":  121.105065,
+        "lat":  23.861401
+    },
+    {
+        "iso3":  "TZA",
+        "name":  "United Republic of Tanzania",
+        "lon":  34.342976,
+        "lat":  -6.514937
+    },
+    {
+        "iso3":  "UGA",
+        "name":  "Uganda",
+        "lon":  31.91715,
+        "lat":  1.255721
+    },
+    {
+        "iso3":  "UKR",
+        "name":  "Ukraine",
+        "lon":  30.65148,
+        "lat":  48.463927
+    },
+    {
+        "iso3":  "URY",
+        "name":  "Uruguay",
+        "lon":  -56.138628,
+        "lat":  -32.697536
+    },
+    {
+        "iso3":  "USA",
+        "name":  "United States of America",
+        "lon":  -155.569382,
+        "lat":  19.635254
+    },
+    {
+        "iso3":  "UZB",
+        "name":  "Uzbekistan",
+        "lon":  65.484604,
+        "lat":  41.079575
+    },
+    {
+        "iso3":  "VEN",
+        "name":  "Venezuela",
+        "lon":  -66.966792,
+        "lat":  7.284967
+    },
+    {
+        "iso3":  "VNM",
+        "name":  "Vietnam",
+        "lon":  106.023183,
+        "lat":  16.956821
+    },
+    {
+        "iso3":  "VUT",
+        "name":  "Vanuatu",
+        "lon":  167.520349,
+        "lat":  -16.316471
+    },
+    {
+        "iso3":  "PSE",
+        "name":  "West Bank",
+        "lon":  35.257391,
+        "lat":  31.909247
+    },
+    {
+        "iso3":  "YEM",
+        "name":  "Yemen",
+        "lon":  46.496699,
+        "lat":  15.458508
+    },
+    {
+        "iso3":  "ZAF",
+        "name":  "South Africa",
+        "lon":  24.904648,
+        "lat":  -28.612201
+    },
+    {
+        "iso3":  "ZMB",
+        "name":  "Zambia",
+        "lon":  28.011101,
+        "lat":  -12.849441
+    },
+    {
+        "iso3":  "ZWE",
+        "name":  "Zimbabwe",
+        "lon":  29.658727,
+        "lat":  -18.870223
+    }
+]

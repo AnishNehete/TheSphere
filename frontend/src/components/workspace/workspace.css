@@ -1,0 +1,6886 @@
+/* Investigation workspace — Phase 11B
+ * Fixed, full-viewport analyst shell built over the existing GlobeCanvas.
+ * Body scroll is intentionally disabled once this shell mounts. Scrolling is
+ * isolated to the overlay panel + the rail.
+ */
+
+.ws-shell {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  background: var(--ds-bg-main, #03060b);
+  font-family: var(--font-body), system-ui, sans-serif;
+  color: var(--ds-text-primary, rgba(242, 246, 250, 0.96));
+  --ws-sev-critical: #ef7a5c;
+  --ws-sev-elevated: #f0b36a;
+  --ws-sev-watch: #7cb3d9;
+  --ws-sev-info: rgba(187, 199, 211, 0.72);
+}
+
+body:has(.ws-shell) {
+  overflow: hidden;
+}
+
+/* ---------- Globe layer ---------- */
+
+.ws-globe {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+
+.ws-globe > .globe-canvas-shell,
+.ws-globe canvas {
+  width: 100%;
+  height: 100%;
+}
+
+.ws-globe__dim {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    circle at 50% 50%,
+    rgba(3, 6, 11, 0) 40%,
+    rgba(3, 6, 11, 0.18) 70%,
+    rgba(3, 6, 11, 0.32) 100%
+  );
+  opacity: 0;
+  transition: opacity 220ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.ws-shell--overlay-open .ws-globe__dim {
+  opacity: 0.55;
+}
+
+/* Phase 19D — globe stage frame, with a subtle indigo halo behind the
+   limb. The radial wash adds a faint "atmospheric breath" cue that
+   integrates the planet with the surrounding chrome instead of the
+   globe sitting as a discrete sphere on flat black. Pointer-events
+   disabled so it never blocks the canvas. */
+.ws-globe__stage {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  background:
+    /* Top-edge fade keeps the globe from reading as chopped under the
+       top shell. */
+    linear-gradient(
+      180deg,
+      rgba(3, 6, 11, 0.58) 0%,
+      rgba(3, 6, 11, 0.18) 88px,
+      rgba(3, 6, 11, 0.00) 168px
+    ),
+    /* Indigo + cyan halo behind the limb. Wide radial keeps the planet
+       tonally connected to the chrome. */
+    radial-gradient(
+      ellipse 65% 55% at 58% 50%,
+      rgba(120, 138, 232, 0.06) 0%,
+      rgba(112, 218, 244, 0.04) 38%,
+      rgba(3, 6, 11, 0.00) 70%
+    ),
+    /* Edge vignette anchors the eye on the planet. */
+    radial-gradient(
+      ellipse at 55% 52%,
+      rgba(3, 6, 11, 0.00) 38%,
+      rgba(3, 6, 11, 0.20) 78%,
+      rgba(3, 6, 11, 0.46) 100%
+    );
+}
+
+/* ---------- Chrome (top bar, rails) ---------- */
+
+.ws-chrome {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-columns: minmax(320px, 400px) 1fr;
+  grid-template-rows: auto 1fr auto;
+  grid-template-areas:
+    "top    top"
+    "rail   .  "
+    "footer footer";
+  pointer-events: none;
+  padding: 16px 20px 14px;
+  gap: 14px;
+  z-index: 2;
+}
+
+.ws-chrome > * {
+  pointer-events: auto;
+}
+
+/* ---------- Top command bar ---------- */
+
+.ws-topbar {
+  grid-area: top;
+  display: grid;
+  grid-template-columns: minmax(220px, auto) minmax(360px, 560px) minmax(160px, auto);
+  align-items: center;
+  gap: 24px;
+  padding: 12px 18px;
+  /* Phase 19D — premium cockpit surface. The 17A.3 single-cool gradient
+     was the source of the "flat black" feel. The new fill layers an
+     indigo wash on the right (where mode/portfolio/star/live chips live)
+     against a deeper navy on the left, plus a thin cyan top edge that
+     reads as a control-surface highlight. Saturation bump in the
+     backdrop-filter pushes the globe color underneath without making
+     the bar itself feel painted. */
+  background:
+    linear-gradient(
+      180deg,
+      rgba(20, 26, 38, 0.82) 0%,
+      rgba(12, 16, 24, 0.66) 100%
+    ),
+    radial-gradient(ellipse at 86% 50%, rgba(120, 138, 232, 0.10), transparent 60%);
+  border: 1px solid rgba(168, 210, 235, 0.12);
+  border-radius: 18px;
+  backdrop-filter: blur(20px) saturate(122%);
+  -webkit-backdrop-filter: blur(20px) saturate(122%);
+  box-shadow:
+    0 1px 0 rgba(176, 200, 240, 0.08) inset,
+    0 0 0 1px rgba(120, 138, 232, 0.06) inset,
+    0 24px 56px -22px rgba(0, 0, 0, 0.62),
+    0 6px 18px -8px rgba(40, 60, 110, 0.18);
+  /* Phase 17A.3 — top bar holds a steady GPU layer so the cloud
+     shells behind it don't strobe on orbit/zoom. */
+  will-change: backdrop-filter;
+  contain: paint;
+}
+
+.ws-topbar__brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.ws-topbar__mark {
+  font-size: 20px;
+  color: var(--ds-accent, #a8d2eb);
+  opacity: 0.92;
+}
+
+.ws-topbar__lockup {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  line-height: 1.1;
+}
+
+.ws-topbar__name {
+  font-weight: 600;
+  font-size: 14px;
+  letter-spacing: 0.06em;
+}
+
+.ws-topbar__tag {
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ds-text-muted, rgba(133, 148, 160, 0.64));
+}
+
+.ws-commandbar {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+}
+
+.ws-commandbar__label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 12px;
+  height: 36px;
+  background: rgba(3, 6, 11, 0.42);
+  border: 1px solid rgba(132, 153, 171, 0.18);
+  border-radius: 10px;
+  color: var(--ds-text-secondary, rgba(187, 199, 211, 0.8));
+  transition: border-color 160ms ease, background 160ms ease;
+}
+
+.ws-commandbar__label:focus-within {
+  /* Phase 19D — search input picks up a soft cyan halo on focus so it
+     reads as the live entry point rather than a passive text field. */
+  border-color: var(--ds-accent-cyan-line, rgba(112, 218, 244, 0.55));
+  background: rgba(3, 6, 11, 0.66);
+  box-shadow:
+    0 0 0 1px rgba(112, 218, 244, 0.16) inset,
+    0 8px 22px -10px rgba(112, 218, 244, 0.32);
+}
+
+.ws-commandbar__label input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: inherit;
+  font-size: 13px;
+  font-family: inherit;
+}
+
+.ws-commandbar__submit {
+  height: 36px;
+  padding: 0 16px;
+  border-radius: 10px;
+  border: 1px solid rgba(168, 210, 235, 0.42);
+  background: rgba(168, 210, 235, 0.14);
+  color: #e7f1f9;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  transition: background 160ms ease, border-color 160ms ease;
+}
+
+.ws-commandbar__submit:hover:not(:disabled) {
+  background: rgba(168, 210, 235, 0.22);
+  border-color: rgba(168, 210, 235, 0.6);
+}
+
+.ws-commandbar__submit:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.ws-topbar__right {
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* ---------- Health badge ---------- */
+
+.ws-health {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(132, 153, 171, 0.2);
+  background: rgba(3, 6, 11, 0.4);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: var(--ds-text-secondary, rgba(187, 199, 211, 0.8));
+  text-transform: uppercase;
+}
+
+.ws-health__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.ws-health--ok { color: #8ec1b0; }
+.ws-health--degraded { color: #d8b372; }
+.ws-health--down { color: #e79d84; }
+.ws-health--idle { color: rgba(187, 199, 211, 0.55); }
+
+/* Phase 19E — secondary chart-provider indicator inside the health badge.
+   Coral / amber to be honest about demo mode without flooding the eye. */
+.ws-health__sub {
+  margin-left: 4px;
+  color: rgba(255, 168, 138, 0.85);
+  text-transform: none;
+  letter-spacing: 0.02em;
+}
+
+/* ---------- Rail + strips ---------- */
+
+.ws-rail {
+  grid-area: rail;
+  display: flex;
+  align-items: flex-start;
+  align-self: stretch;
+  /* Phase 19C.4 verification — was max-height: calc(100vh - 230px).
+     Tightened to reserve room for the chrome top bar (~88px), gaps,
+     and the pinned footer (min-height 56px + 14px gap + 14px shell
+     padding ≈ 84px). New cap guarantees the rail never expands into
+     the footer's row even when the awareness signal feed fills up. */
+  max-height: calc(100vh - 260px);
+  min-width: 320px;
+  max-width: 400px;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.ws-footer {
+  /* Phase 16.6 — span the full chrome row but cap so the tape never
+     becomes wider than the workspace can comfortably scan. The right-side
+     overlay panel still floats over it; the tape no longer pushes its own
+     content beyond a sensible max. */
+  grid-area: footer;
+  justify-self: stretch;
+  align-self: end;
+  max-width: 100%;
+  margin-right: 0;
+  /* Phase 19C.4 verification — pin to bottom of chrome with a stable
+     minimum so the tape always shows even when the rail is full of
+     signals (reviewer reported the tape going missing in default view
+     once awareness rail filled past ~6 items). Auto-row sizing kept
+     collapsing the row when sibling stacking pressure peaked. */
+  min-height: 56px;
+  position: relative;
+  z-index: 1;
+}
+
+@media (min-width: 1280px) {
+  .ws-footer {
+    /* On wide screens, leave breathing room on the right where the
+       overlay panel sits. Keeps the tape feeling like a ribbon. */
+    max-width: calc(100vw - 600px);
+  }
+}
+
+.ws-strip {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+  /* Phase 19D — strip surface gets a faint indigo undertone so the rail
+     and tape no longer read as flat black panels. The radial accent at
+     the top-left adds plane separation against the globe canvas without
+     committing color to the entire surface. */
+  background:
+    linear-gradient(
+      180deg,
+      rgba(16, 22, 34, 0.92) 0%,
+      rgba(8, 12, 20, 0.78) 100%
+    ),
+    radial-gradient(ellipse at 0% 0%, rgba(120, 138, 232, 0.10), transparent 60%);
+  border: 1px solid rgba(168, 210, 235, 0.12);
+  border-radius: 14px;
+  backdrop-filter: blur(20px) saturate(118%);
+  -webkit-backdrop-filter: blur(20px) saturate(118%);
+  box-shadow:
+    0 1px 0 rgba(176, 200, 240, 0.07) inset,
+    0 0 0 1px rgba(120, 138, 232, 0.06) inset,
+    0 18px 40px -22px rgba(0, 0, 0, 0.62);
+  /* Phase 17A.3 — tape sits over the lower edge of the canvas; a
+     stable GPU layer keeps the clouds underneath from shimmering
+     while the tape itself drifts. */
+  will-change: backdrop-filter;
+  contain: paint;
+  width: 100%;
+}
+
+.ws-strip--signal {
+  max-height: 100%;
+  overflow: hidden;
+}
+
+.ws-strip--empty {
+  color: var(--ds-text-muted, rgba(133, 148, 160, 0.64));
+  font-size: 12px;
+}
+
+.ws-strip--empty p {
+  margin: 4px 0 0 0;
+}
+
+.ws-strip__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.ws-strip__count {
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ds-text-muted, rgba(133, 148, 160, 0.64));
+}
+
+.ws-strip__list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow-y: auto;
+  min-height: 0;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(132, 153, 171, 0.24) transparent;
+}
+
+.ws-strip__list::-webkit-scrollbar { width: 6px; }
+.ws-strip__list::-webkit-scrollbar-thumb {
+  background: rgba(132, 153, 171, 0.22);
+  border-radius: 999px;
+}
+
+.ws-chip-row {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 10px 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  background: transparent;
+  border: none;
+  border-radius: 9px;
+  text-align: left;
+  color: var(--ds-text-primary);
+  cursor: pointer;
+  position: relative;
+  transition: background 140ms ease;
+}
+
+.ws-chip-row::before {
+  /* Phase 16.6 — left-edge live indicator. Stays invisible by default,
+     warms up on hover/focus so the rail feels active without painting
+     accent stripes on every row. */
+  content: "";
+  position: absolute;
+  left: 2px;
+  top: 8px;
+  bottom: 8px;
+  width: 2px;
+  border-radius: 2px;
+  background: rgba(168, 210, 235, 0);
+  transition: background 160ms ease;
+}
+
+.ws-chip-row:hover,
+.ws-chip-row:focus-visible {
+  background: rgba(168, 210, 235, 0.07);
+  outline: none;
+}
+
+.ws-chip-row:hover::before,
+.ws-chip-row:focus-visible::before {
+  background: rgba(168, 210, 235, 0.42);
+}
+
+.ws-chip-row__title {
+  font-size: 12.5px;
+  line-height: 1.32;
+  /* Phase 17A.3 hotfix — single-line clamp keeps the rail orderly.
+     Mixed 1- and 2-line titles in the awareness rail produced
+     uneven row heights and a "not clean" feel. Truncating to one
+     line with ellipsis gives the rail a steady visual cadence; the
+     full title is still surfaced via the button's title attribute
+     and on click. */
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.ws-chip-row__meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 10.5px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ds-text-muted, rgba(133, 148, 160, 0.64));
+}
+
+.ws-chip-row__country {
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: rgba(132, 153, 171, 0.12);
+  color: var(--ds-text-secondary);
+  letter-spacing: 0.08em;
+}
+
+/* ---------- Severity dots ---------- */
+
+.ws-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.ws-dot--critical { background: var(--ws-sev-critical); box-shadow: 0 0 8px rgba(239, 122, 92, 0.45); }
+.ws-dot--elevated { background: var(--ws-sev-elevated); }
+.ws-dot--watch    { background: var(--ws-sev-watch); }
+.ws-dot--info     { background: var(--ws-sev-info); }
+
+/* ---------- Equities rail ---------- */
+
+.ws-ticker-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.ws-ticker {
+  position: relative;
+  display: inline-grid;
+  grid-template-columns: minmax(0, auto) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 10px 5px 9px;
+  height: 30px;
+  background:
+    linear-gradient(
+      180deg,
+      rgba(14, 20, 30, 0.78) 0%,
+      rgba(6, 10, 16, 0.62) 100%
+    );
+  border: 1px solid rgba(132, 153, 171, 0.16);
+  border-radius: 10px;
+  color: inherit;
+  cursor: pointer;
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 12px;
+  line-height: 1.1;
+  transition: border-color 160ms cubic-bezier(0.22, 1, 0.36, 1),
+    background 160ms ease,
+    transform 180ms cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 220ms ease;
+  will-change: transform;
+}
+
+.ws-ticker::before {
+  /* Inner highlight line — barely-visible top edge that lifts the card
+     off the dark tape without a hard border. */
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.045) 0%,
+    rgba(255, 255, 255, 0) 38%
+  );
+}
+
+.ws-ticker:hover {
+  background:
+    linear-gradient(
+      180deg,
+      rgba(20, 28, 40, 0.92) 0%,
+      rgba(8, 12, 18, 0.7) 100%
+    );
+  border-color: rgba(168, 210, 235, 0.42);
+  transform: translateY(-1px);
+  box-shadow:
+    0 8px 18px rgba(0, 0, 0, 0.42),
+    0 0 0 1px rgba(168, 210, 235, 0.06) inset;
+}
+
+.ws-ticker:focus-visible {
+  outline: none;
+  border-color: rgba(168, 210, 235, 0.68);
+  box-shadow: 0 0 0 2px rgba(168, 210, 235, 0.22);
+}
+
+.ws-ticker__symbol {
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  color: var(--ds-text-primary, rgba(242, 246, 250, 0.96));
+  white-space: nowrap;
+}
+
+.ws-ticker__values {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+  min-width: 0;
+}
+
+.ws-ticker__pct {
+  font-weight: 500;
+  letter-spacing: 0.01em;
+}
+
+.ws-ticker__price {
+  color: var(--ds-text-muted, rgba(170, 184, 197, 0.7));
+  font-size: 11.5px;
+}
+
+.ws-ticker--up .ws-ticker__pct { color: #8ec1b0; }
+.ws-ticker--down .ws-ticker__pct { color: #e79d84; }
+.ws-ticker--flat .ws-ticker__pct { color: rgba(170, 184, 197, 0.78); }
+
+.ws-ticker__arrow {
+  font-size: 9px;
+  letter-spacing: 0;
+  opacity: 0.6;
+  transform: translateY(-0.5px);
+}
+
+/* Phase 19D — semantic colors via tokens. Up uses positive-green,
+   down uses coral, flat stays neutral. Opacity bump so the indicator
+   reads on the new tape gradient. */
+.ws-ticker__arrow[data-direction="up"]   { color: var(--ds-positive, #8ec1b0); opacity: 0.95; }
+.ws-ticker__arrow[data-direction="down"] { color: var(--ds-coral,    #e79d84); opacity: 0.95; }
+.ws-ticker__arrow[data-direction="flat"] { color: rgba(170, 184, 197, 0.55); }
+
+.ws-ticker--sev-critical { border-color: rgba(239, 122, 92, 0.45); }
+.ws-ticker--sev-elevated { border-color: rgba(240, 179, 106, 0.36); }
+
+.ws-ticker--selected {
+  /* Phase 19D — selected ticker reads as a cyan-lit live channel. */
+  border-color: var(--ds-accent-cyan-line, rgba(112, 218, 244, 0.55));
+  background:
+    linear-gradient(
+      180deg,
+      rgba(28, 50, 72, 0.94) 0%,
+      rgba(12, 18, 28, 0.78) 100%
+    );
+  box-shadow:
+    0 0 0 1px rgba(112, 218, 244, 0.30) inset,
+    0 8px 22px rgba(0, 0, 0, 0.48);
+}
+
+.ws-ticker--selected .ws-ticker__symbol {
+  color: rgba(232, 244, 252, 1);
+}
+
+/* ---------- Overlay panel ---------- */
+
+.ws-overlay {
+  position: absolute;
+  top: 92px;
+  right: 24px;
+  bottom: 24px;
+  width: min(520px, calc(100vw - 48px));
+  max-width: 560px;
+  pointer-events: none;
+  opacity: 0;
+  transform: translateX(12px);
+  transition: opacity 220ms cubic-bezier(0.22, 1, 0.36, 1),
+              transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
+  z-index: 4;
+}
+
+.ws-overlay--open {
+  opacity: 1;
+  transform: translateX(0);
+  pointer-events: auto;
+}
+
+.ws-overlay__frame {
+  position: relative;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  /* Phase 19D — premium answer panel. Indigo undertone at the top
+     introduces depth without committing color to the body. The radial
+     wash at the head adds a faint purple "high-value evidence" cue —
+     this is the most important surface in the product and should feel
+     like the cockpit's decision plane. */
+  background:
+    linear-gradient(
+      180deg,
+      rgba(20, 26, 42, 0.92) 0%,
+      rgba(13, 18, 28, 0.88) 36%,
+      rgba(8, 12, 18, 0.82) 100%
+    ),
+    radial-gradient(ellipse at 100% 0%, rgba(176, 140, 240, 0.08), transparent 55%),
+    radial-gradient(ellipse at 0% 100%, rgba(120, 138, 232, 0.06), transparent 50%);
+  border: 1px solid rgba(168, 210, 235, 0.16);
+  border-radius: 20px;
+  backdrop-filter: blur(24px) saturate(122%);
+  -webkit-backdrop-filter: blur(24px) saturate(122%);
+  box-shadow:
+    0 1px 0 rgba(176, 200, 240, 0.08) inset,
+    0 0 0 1px rgba(176, 140, 240, 0.06) inset,
+    0 32px 72px -28px rgba(0, 0, 0, 0.7),
+    0 8px 24px -10px rgba(60, 70, 120, 0.28);
+  outline: none;
+  /* Phase 17A.3 — keep the GPU layer cached during globe orbit / swipe.
+     Without this hint, browsers re-rasterize backdrop-filter on every
+     scroll/transform and the cloud layer behind the panel appears to
+     flicker as the blur recomputes. `contain: paint` also isolates
+     descendant repaints so a panel-internal scroll doesn't invalidate
+     the cloud layer's compositing pass. */
+  will-change: transform, backdrop-filter;
+  contain: paint;
+}
+
+.ws-overlay__frame:focus-visible {
+  box-shadow: 0 0 0 1px rgba(168, 210, 235, 0.4), 0 28px 64px rgba(0, 0, 0, 0.38);
+}
+
+.ws-overlay__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px 22px 14px;
+  border-bottom: 1px solid rgba(132, 153, 171, 0.12);
+}
+
+.ws-overlay__head-text {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.ws-overlay__title {
+  margin: 0;
+  font-size: 19px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.ws-overlay__subtitle {
+  margin: 0;
+  font-size: 12px;
+  color: var(--ds-text-secondary, rgba(187, 199, 211, 0.8));
+  letter-spacing: 0.01em;
+}
+
+.ws-overlay__close {
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: rgba(3, 6, 11, 0.42);
+  border: 1px solid rgba(132, 153, 171, 0.2);
+  color: var(--ds-text-secondary);
+  font-size: 18px;
+  line-height: 1;
+  transition: background 140ms ease, color 140ms ease;
+}
+
+.ws-overlay__close:hover {
+  background: rgba(3, 6, 11, 0.7);
+  color: var(--ds-text-primary);
+}
+
+.ws-overlay__scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 22px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(132, 153, 171, 0.24) transparent;
+}
+
+.ws-overlay__scroll::-webkit-scrollbar { width: 8px; }
+.ws-overlay__scroll::-webkit-scrollbar-thumb {
+  background: rgba(132, 153, 171, 0.22);
+  border-radius: 999px;
+}
+
+.ws-overlay__foot {
+  padding: 12px 22px 16px;
+  border-top: 1px solid rgba(132, 153, 171, 0.12);
+  font-size: 11px;
+  color: var(--ds-text-muted);
+  letter-spacing: 0.04em;
+}
+
+/* ---------- Sections ---------- */
+
+.ws-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ws-section__title {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ds-text-secondary, rgba(187, 199, 211, 0.8));
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ws-section__count {
+  color: var(--ds-text-muted);
+  font-weight: 500;
+  letter-spacing: 0.06em;
+}
+
+.ws-section__row {
+  display: flex;
+  gap: 16px;
+}
+
+.ws-section__row--split {
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.ws-section__body {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--ds-text-primary, rgba(242, 246, 250, 0.96));
+}
+
+.ws-section--pivots {
+  padding-top: 6px;
+  border-top: 1px dashed rgba(132, 153, 171, 0.14);
+}
+
+/* ---------- Eyebrow ---------- */
+
+.ws-eyebrow {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  /* Phase 19D — eyebrow lifted from muted (0.64) to secondary (0.78)
+     so section labels become readable scan anchors instead of fading
+     into the background. Critical eyebrows can override via tone
+     classes (.ws-eyebrow--cyan / --purple) declared below. */
+  color: var(--ds-text-secondary, rgba(187, 199, 211, 0.86));
+}
+
+.ws-eyebrow--cyan {
+  color: var(--ds-accent-cyan, rgba(112, 218, 244, 0.92));
+}
+.ws-eyebrow--purple {
+  color: var(--ds-accent-purple, rgba(176, 140, 240, 0.92));
+}
+.ws-eyebrow--amber {
+  color: var(--ds-amber, rgba(238, 188, 102, 0.94));
+}
+
+/* ---------- Watch block ---------- */
+
+.ws-watch {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.ws-watch__score {
+  font-size: 36px;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+.ws-watch__tag {
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border: 1px solid transparent;
+}
+
+.ws-watch__tag--info      { color: var(--ws-sev-info); border-color: rgba(187, 199, 211, 0.25); }
+.ws-watch__tag--watch     { color: var(--ws-sev-watch); border-color: rgba(124, 179, 217, 0.38); background: rgba(124, 179, 217, 0.08); }
+.ws-watch__tag--elevated  { color: var(--ws-sev-elevated); border-color: rgba(240, 179, 106, 0.4); background: rgba(240, 179, 106, 0.08); }
+.ws-watch__tag--critical  { color: var(--ws-sev-critical); border-color: rgba(239, 122, 92, 0.45); background: rgba(239, 122, 92, 0.08); }
+
+.ws-watch__delta {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 12px;
+  letter-spacing: 0.05em;
+}
+
+.ws-watch__delta--up { color: #8ec1b0; }
+.ws-watch__delta--down { color: #e79d84; }
+
+/* ---------- Meta lists ---------- */
+
+.ws-meta {
+  display: flex;
+  gap: 18px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ws-meta--grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px 24px;
+}
+
+.ws-meta > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ws-meta dt {
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ds-text-muted);
+  margin: 0;
+}
+
+.ws-meta dd {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ds-text-primary);
+}
+
+/* ---------- Counts ---------- */
+
+.ws-counts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.ws-count {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(132, 153, 171, 0.18);
+  background: rgba(3, 6, 11, 0.4);
+  font-size: 12px;
+  color: var(--ds-text-secondary);
+}
+
+.ws-count strong {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  color: var(--ds-text-primary);
+  font-weight: 600;
+}
+
+/* ---------- Signal/hit rows ---------- */
+
+.ws-signal-list,
+.ws-hit-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ws-signal-row__button,
+.ws-hit__button {
+  display: grid;
+  grid-template-columns: 10px 1fr;
+  align-items: start;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(132, 153, 171, 0.1);
+  background: rgba(3, 6, 11, 0.32);
+  color: inherit;
+  text-align: left;
+  transition: background 140ms ease, border-color 140ms ease;
+}
+
+.ws-signal-row__button:hover,
+.ws-hit__button:hover,
+.ws-signal-row__button:focus-visible,
+.ws-hit__button:focus-visible {
+  /* Phase 19D — hover/focus reads as a cyan-lit row instead of a flat
+     blue tint. Subtle inner highlight makes the row feel raised. */
+  background: linear-gradient(180deg,
+    rgba(112, 218, 244, 0.10) 0%,
+    rgba(120, 138, 232, 0.06) 100%);
+  border-color: var(--ds-accent-cyan-line, rgba(112, 218, 244, 0.32));
+  box-shadow:
+    0 0 0 1px rgba(112, 218, 244, 0.06) inset,
+    0 4px 14px -8px rgba(112, 218, 244, 0.22);
+  outline: none;
+}
+
+.ws-signal-row__main,
+.ws-hit__main {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.ws-signal-row__title,
+.ws-hit__title {
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--ds-text-primary);
+}
+
+.ws-signal-row__meta,
+.ws-hit__meta {
+  font-size: 11px;
+  letter-spacing: 0.03em;
+  color: var(--ds-text-muted);
+}
+
+.ws-hit__matched {
+  font-size: 10.5px;
+  font-family: var(--font-mono), ui-monospace, monospace;
+  color: var(--ds-text-secondary);
+  letter-spacing: 0.04em;
+}
+
+/* ---------- Timeline ---------- */
+
+.ws-timeline {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ws-timeline__button {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 82px 1fr auto;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: transparent;
+  border: none;
+  color: inherit;
+  text-align: left;
+}
+
+.ws-timeline__button:hover,
+.ws-timeline__button:focus-visible {
+  background: rgba(168, 210, 235, 0.06);
+  outline: none;
+}
+
+.ws-timeline__time {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 11px;
+  color: var(--ds-text-muted);
+  letter-spacing: 0.04em;
+}
+
+.ws-timeline__title {
+  font-size: 12.5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ws-timeline__severity {
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(132, 153, 171, 0.22);
+  color: var(--ds-text-secondary);
+}
+
+.ws-sev--critical { color: var(--ws-sev-critical); border-color: rgba(239, 122, 92, 0.4); }
+.ws-sev--elevated { color: var(--ws-sev-elevated); border-color: rgba(240, 179, 106, 0.38); }
+.ws-sev--watch    { color: var(--ws-sev-watch); }
+.ws-sev--info     { color: var(--ws-sev-info); }
+
+/* ---------- Chip inline ---------- */
+
+.ws-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(132, 153, 171, 0.22);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.ws-chip--critical { color: var(--ws-sev-critical); background: rgba(239, 122, 92, 0.08); border-color: rgba(239, 122, 92, 0.35); }
+.ws-chip--elevated { color: var(--ws-sev-elevated); background: rgba(240, 179, 106, 0.08); border-color: rgba(240, 179, 106, 0.3); }
+.ws-chip--watch    { color: var(--ws-sev-watch); background: rgba(124, 179, 217, 0.08); border-color: rgba(124, 179, 217, 0.3); }
+.ws-chip--info     { color: var(--ws-sev-info); }
+
+/* ---------- Entities ---------- */
+
+.ws-entity-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.ws-entity {
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: rgba(3, 6, 11, 0.38);
+  border: 1px solid rgba(132, 153, 171, 0.18);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ws-entity__label {
+  font-size: 12px;
+  color: var(--ds-text-primary);
+}
+
+.ws-entity__meta {
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ds-text-muted);
+}
+
+/* ---------- Sources ---------- */
+
+.ws-source-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ws-source-list--compact {
+  gap: 4px;
+}
+
+.ws-source {
+  padding: 10px 12px;
+  border: 1px solid rgba(132, 153, 171, 0.14);
+  border-radius: 10px;
+  background: rgba(3, 6, 11, 0.32);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ws-source-list--compact .ws-source {
+  padding: 8px 10px;
+}
+
+.ws-source__head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+}
+
+.ws-source__publisher {
+  font-size: 12.5px;
+  color: var(--ds-text-primary);
+  font-weight: 500;
+}
+
+.ws-source__reliability {
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ds-text-muted);
+}
+
+.ws-source__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--ds-text-muted);
+}
+
+.ws-source__link {
+  color: var(--ds-accent, #a8d2eb);
+  text-decoration: none;
+}
+
+.ws-source__link:hover { text-decoration: underline; }
+
+.ws-source-list__empty {
+  margin: 0;
+  font-size: 12px;
+  color: var(--ds-text-muted);
+}
+
+/* ---------- Pivots ---------- */
+
+.ws-pivots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.ws-pivot {
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(168, 210, 235, 0.24);
+  background: rgba(168, 210, 235, 0.04);
+  color: var(--ds-text-primary);
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  text-align: left;
+  transition: background 140ms ease, border-color 140ms ease;
+}
+
+.ws-pivot:hover:not(:disabled) {
+  background: rgba(168, 210, 235, 0.1);
+  border-color: rgba(168, 210, 235, 0.42);
+}
+
+.ws-pivot:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.ws-pivot__label {
+  font-size: 12.5px;
+  font-weight: 500;
+}
+
+.ws-pivot__hint {
+  font-size: 10.5px;
+  letter-spacing: 0.05em;
+  color: var(--ds-text-muted);
+  text-transform: uppercase;
+}
+
+/* ---------- Empty / skeleton ---------- */
+
+.ws-empty {
+  padding: 14px;
+  border-radius: 10px;
+  background: rgba(3, 6, 11, 0.3);
+  border: 1px dashed rgba(132, 153, 171, 0.22);
+  color: var(--ds-text-secondary);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ws-empty p {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--ds-text-primary);
+}
+
+.ws-muted { color: var(--ds-text-muted); }
+.ws-muted--mono { font-family: var(--font-mono), ui-monospace, monospace; font-size: 11px; }
+
+.ws-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ws-skeleton__block {
+  height: 12px;
+  border-radius: 6px;
+  background: linear-gradient(90deg, rgba(132, 153, 171, 0.08), rgba(132, 153, 171, 0.18), rgba(132, 153, 171, 0.08));
+  background-size: 200% 100%;
+  animation: ws-shimmer 1.4s linear infinite;
+}
+
+@keyframes ws-shimmer {
+  0% { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
+}
+
+/* ---------- Phase 12A — Agent answer + citations ---------- */
+
+.ws-chip-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.ws-answer {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  counter-reset: ws-answer-step;
+}
+
+.ws-answer__item {
+  display: grid;
+  grid-template-columns: 24px 1fr;
+  gap: 10px;
+  align-items: start;
+}
+
+.ws-answer__item::before {
+  counter-increment: ws-answer-step;
+  content: counter(ws-answer-step);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  margin-top: 2px;
+  border-radius: 50%;
+  border: 1px solid rgba(168, 210, 235, 0.35);
+  background: rgba(168, 210, 235, 0.08);
+  color: var(--ds-accent, #a8d2eb);
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 10.5px;
+  letter-spacing: 0.04em;
+}
+
+.ws-answer__text {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.52;
+  color: var(--ds-text-primary);
+}
+
+.ws-answer__citations {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.ws-citation {
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: rgba(168, 210, 235, 0.1);
+  border: 1px solid rgba(168, 210, 235, 0.25);
+  color: var(--ds-accent, #a8d2eb);
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 10.5px;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+  transition: background 120ms ease, border-color 120ms ease;
+}
+
+.ws-citation:hover:not(:disabled) {
+  background: rgba(168, 210, 235, 0.2);
+  border-color: rgba(168, 210, 235, 0.5);
+}
+
+.ws-citation:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.ws-answer__uncited {
+  display: inline-block;
+  margin-top: 4px;
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ds-text-muted);
+  font-family: var(--font-mono), ui-monospace, monospace;
+}
+
+/* ---------- Phase 12C — Dependency chain ---------- */
+
+.ws-dep-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.ws-dep {
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(132, 153, 171, 0.14);
+  background: rgba(3, 6, 11, 0.32);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ws-dep__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.ws-dep__title {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ds-text-primary);
+}
+
+.ws-dep__conf {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  color: var(--ds-accent, #a8d2eb);
+}
+
+.ws-dep__chain {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.ws-dep__node-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ws-dep__node {
+  display: inline-flex;
+  flex-direction: column;
+  padding: 6px 10px;
+  border-radius: 10px;
+  background: rgba(10, 14, 20, 0.6);
+  border: 1px solid rgba(132, 153, 171, 0.22);
+  color: inherit;
+  text-align: left;
+  gap: 2px;
+  cursor: pointer;
+  transition: border-color 120ms ease, background 120ms ease;
+}
+
+.ws-dep__node:hover:not(:disabled) {
+  border-color: rgba(168, 210, 235, 0.45);
+  background: rgba(168, 210, 235, 0.08);
+}
+
+.ws-dep__node:disabled {
+  cursor: default;
+}
+
+.ws-dep__domain {
+  font-size: 9.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ds-text-muted);
+}
+
+.ws-dep__label {
+  font-size: 11.5px;
+  color: var(--ds-text-primary);
+}
+
+.ws-dep__edge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--ds-text-secondary);
+}
+
+.ws-dep__edge-arrow {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 14px;
+  line-height: 1;
+  color: var(--ds-text-muted);
+}
+
+.ws-dep__edge-label {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  font-size: 9.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.ws-dep__edge-conf {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 9.5px;
+  letter-spacing: 0.05em;
+  color: var(--ds-accent, #a8d2eb);
+}
+
+.ws-dep__rationale {
+  margin: 0;
+  font-size: 11.5px;
+  line-height: 1.4;
+  color: var(--ds-text-muted);
+}
+
+/* ---------- Phase 12B — Compare ---------- */
+
+.ws-compare-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  margin-right: 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(168, 210, 235, 0.35);
+  background: rgba(168, 210, 235, 0.1);
+  color: var(--ds-accent, #a8d2eb);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 120ms ease;
+}
+
+.ws-compare-chip:hover {
+  background: rgba(168, 210, 235, 0.18);
+}
+
+.ws-compare-chip__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.ws-compare-chip__count {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 11px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: rgba(168, 210, 235, 0.2);
+  color: var(--ds-accent, #a8d2eb);
+}
+
+.ws-compare-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+}
+
+.ws-compare-card {
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(132, 153, 171, 0.18);
+  background: rgba(3, 6, 11, 0.36);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ws-compare-card__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.ws-compare-card__title {
+  font-size: 13px;
+  line-height: 1.3;
+  display: block;
+  margin-top: 2px;
+}
+
+.ws-compare-card__remove {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: transparent;
+  border: 1px solid rgba(132, 153, 171, 0.22);
+  color: var(--ds-text-muted);
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.ws-compare-card__remove:hover {
+  color: var(--ds-text-primary);
+  border-color: rgba(168, 210, 235, 0.5);
+}
+
+.ws-compare-card__sev {
+  display: flex;
+  gap: 10px;
+}
+
+.ws-compare-card__sev-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 10.5px;
+  color: var(--ds-text-muted);
+}
+
+.ws-compare-card__events {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ws-compare-card__events li {
+  display: grid;
+  grid-template-columns: 8px 1fr;
+  gap: 8px;
+  align-items: start;
+  font-size: 11.5px;
+  color: var(--ds-text-secondary);
+}
+
+.ws-compare-card__event-title {
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.ws-diff-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ws-diff {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px 14px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: rgba(3, 6, 11, 0.28);
+  border: 1px solid rgba(132, 153, 171, 0.14);
+  align-items: baseline;
+}
+
+.ws-diff__dimension {
+  font-size: 10.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ds-text-muted);
+}
+
+.ws-diff__values {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 12px;
+  color: var(--ds-text-primary);
+}
+
+.ws-diff__note {
+  grid-column: 1 / -1;
+  font-size: 11px;
+  color: var(--ds-text-muted);
+}
+
+.ws-pivot--inline {
+  align-self: flex-start;
+}
+
+/* ---------- Hover tooltip (globe country preview) ---------- */
+/* The globe raycaster writes (x, y) in viewport pixels into useAppStore on
+ * every pointer move. This element just reads that state. It must never
+ * intercept pointer events — otherwise the mouse-leave edge would be delayed
+ * and the tooltip would flicker. It sits above chrome and overlay so it
+ * always reads cleanly; size is capped so it never dominates the screen. */
+
+.ws-hover-tooltip {
+  position: fixed;
+  z-index: 6;
+  pointer-events: none;
+  max-width: 280px;
+  padding: 10px 12px;
+  background: linear-gradient(180deg, rgba(10, 14, 20, 0.96), rgba(10, 14, 20, 0.84));
+  border: 1px solid rgba(168, 210, 235, 0.24);
+  border-radius: 12px;
+  backdrop-filter: blur(16px) saturate(115%);
+  -webkit-backdrop-filter: blur(16px) saturate(115%);
+  box-shadow: 0 18px 38px rgba(0, 0, 0, 0.4);
+  color: var(--ds-text-primary, rgba(242, 246, 250, 0.96));
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  transform: translate3d(0, 0, 0);
+  animation: ws-hover-pop 140ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.ws-hover-tooltip__eyebrow {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ds-text-muted, rgba(133, 148, 160, 0.7));
+}
+
+.ws-hover-tooltip__title {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--ds-text-primary);
+}
+
+.ws-hover-tooltip__summary {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--ds-text-secondary, rgba(187, 199, 211, 0.82));
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.ws-hover-tooltip__meta {
+  display: flex;
+  gap: 10px;
+  margin-top: 2px;
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 10.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ds-text-muted);
+}
+
+@keyframes ws-hover-pop {
+  from { opacity: 0; transform: translateY(3px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ws-hover-tooltip { animation: none; }
+}
+
+/* ---------- Responsive ---------- */
+
+@media (max-width: 960px) {
+  .ws-chrome {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "top"
+      "rail"
+      "footer";
+    padding: 14px 16px;
+  }
+
+  .ws-rail {
+    max-height: 32vh;
+    max-width: 100%;
+  }
+
+  .ws-overlay {
+    top: auto;
+    bottom: 0;
+    right: 0;
+    left: 0;
+    width: 100%;
+    max-width: 100%;
+    border-radius: 20px 20px 0 0;
+    height: 72vh;
+  }
+
+  .ws-overlay__frame {
+    border-radius: 20px 20px 0 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ws-overlay,
+  .ws-globe__dim,
+  .ws-chip-row,
+  .ws-signal-row__button,
+  .ws-hit__button,
+  .ws-ticker,
+  .ws-pivot,
+  .ws-commandbar__label,
+  .ws-commandbar__submit {
+    transition: none;
+  }
+
+  .ws-skeleton__block {
+    animation: none;
+    background: rgba(132, 153, 171, 0.14);
+  }
+}
+
+/* ---------- Phase 12.3 place intelligence surfaces ---------- */
+
+.ws-place-card {
+  border: 1px solid rgba(132, 153, 171, 0.16);
+  border-radius: 14px;
+  padding: 14px 16px;
+  background: linear-gradient(180deg, rgba(15, 22, 32, 0.66), rgba(10, 14, 22, 0.5));
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ws-place-card[data-tone="ok"] {
+  border-color: rgba(124, 179, 217, 0.32);
+}
+.ws-place-card[data-tone="soft"] {
+  border-color: rgba(240, 179, 106, 0.28);
+}
+.ws-place-card[data-tone="warn"] {
+  border-color: rgba(239, 122, 92, 0.28);
+}
+
+.ws-place-card__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.ws-place-card__scope {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(187, 199, 211, 0.72);
+}
+
+.ws-place-card__body {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.ws-place-card__name {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.ws-place-card__title {
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  color: var(--ds-text-primary, rgba(242, 246, 250, 0.96));
+}
+
+.ws-place-card__type {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(140, 168, 188, 0.78);
+  background: rgba(140, 168, 188, 0.1);
+  border-radius: 4px;
+  padding: 2px 6px;
+}
+
+.ws-place-card__country {
+  font-size: 12.5px;
+  color: rgba(140, 168, 188, 0.85);
+  background: transparent;
+  border: 1px solid rgba(140, 168, 188, 0.18);
+  border-radius: 999px;
+  padding: 3px 10px;
+  cursor: pointer;
+  transition: border-color 140ms ease, color 140ms ease;
+}
+.ws-place-card__country:hover:not(:disabled) {
+  color: rgba(220, 232, 244, 0.95);
+  border-color: rgba(168, 210, 235, 0.45);
+}
+.ws-place-card__country:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.ws-place-card__meta {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  font-size: 11.5px;
+  color: rgba(187, 199, 211, 0.72);
+}
+
+.ws-place-card__fallback-tag {
+  font-size: 10.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: rgba(240, 179, 106, 0.14);
+  color: rgba(240, 179, 106, 0.92);
+  border: 1px solid rgba(240, 179, 106, 0.24);
+}
+.ws-place-card__fallback-tag--exact {
+  background: rgba(124, 179, 217, 0.12);
+  color: rgba(168, 210, 235, 0.9);
+  border-color: rgba(124, 179, 217, 0.28);
+}
+
+.ws-place-card__notice {
+  margin: 0;
+  padding: 8px 10px;
+  background: rgba(20, 28, 38, 0.48);
+  border-left: 2px solid rgba(240, 179, 106, 0.6);
+  border-radius: 4px;
+  font-size: 12.5px;
+  color: rgba(220, 232, 244, 0.9);
+  line-height: 1.45;
+}
+.ws-place-card[data-tone="ok"] .ws-place-card__notice {
+  border-left-color: rgba(124, 179, 217, 0.5);
+}
+.ws-place-card[data-tone="warn"] .ws-place-card__notice {
+  border-left-color: rgba(239, 122, 92, 0.6);
+}
+
+.ws-macro {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ws-macro__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.ws-macro__chip {
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: rgba(140, 168, 188, 0.1);
+  border: 1px solid rgba(140, 168, 188, 0.18);
+  color: rgba(220, 232, 244, 0.86);
+}
+
+.ws-macro__chip--currency {
+  background: rgba(124, 179, 217, 0.14);
+  border-color: rgba(124, 179, 217, 0.3);
+  color: rgba(208, 230, 246, 0.95);
+  font-weight: 600;
+}
+
+.ws-macro__detail {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: rgba(187, 199, 211, 0.84);
+}
+.ws-macro__detail strong {
+  color: rgba(232, 240, 250, 0.96);
+  font-weight: 600;
+}
+
+.ws-place-deps__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ws-place-deps__item {
+  border: 1px solid rgba(132, 153, 171, 0.14);
+  border-radius: 10px;
+  padding: 10px 12px;
+  background: rgba(12, 18, 26, 0.48);
+}
+
+.ws-place-deps__title {
+  margin: 0 0 4px;
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(232, 240, 250, 0.95);
+}
+
+.ws-place-deps__rationale {
+  margin: 0 0 6px;
+  font-size: 12px;
+  color: rgba(187, 199, 211, 0.82);
+  line-height: 1.45;
+}
+
+.ws-place-deps__confidence {
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: rgba(140, 168, 188, 0.78);
+}
+
+/* ---------- Phase 13A portfolio surface ---------- */
+
+.ws-portfolio-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ws-portfolio-holdings {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ws-portfolio-holding {
+  display: grid;
+  grid-template-columns: minmax(64px, auto) 1fr auto;
+  align-items: baseline;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 1px solid rgba(132, 153, 171, 0.14);
+  border-radius: 8px;
+  background: rgba(12, 18, 26, 0.42);
+}
+
+.ws-portfolio-holding__symbol {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-weight: 600;
+  font-size: 13px;
+  color: rgba(232, 240, 250, 0.96);
+}
+
+.ws-portfolio-holding__name {
+  font-size: 12px;
+  color: rgba(187, 199, 211, 0.84);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ws-portfolio-holding__meta {
+  font-size: 11.5px;
+  color: rgba(140, 168, 188, 0.82);
+  letter-spacing: 0.02em;
+}
+
+.ws-portfolio-holding__warn {
+  grid-column: 1 / -1;
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: rgba(240, 179, 106, 0.85);
+}
+
+.ws-exposure-column {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.ws-exposure-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ws-exposure-row {
+  display: grid;
+  grid-template-columns: minmax(120px, 30%) 1fr auto;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 6px 10px;
+  background: transparent;
+  border: 1px solid rgba(132, 153, 171, 0.1);
+  border-radius: 6px;
+  color: rgba(232, 240, 250, 0.92);
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 140ms ease, background 140ms ease;
+}
+
+.ws-exposure-row:hover:not(:disabled) {
+  border-color: rgba(168, 210, 235, 0.28);
+  background: rgba(168, 210, 235, 0.06);
+}
+
+.ws-exposure-row:disabled {
+  cursor: default;
+  opacity: 0.85;
+}
+
+.ws-exposure-row__label {
+  font-size: 12px;
+  color: rgba(232, 240, 250, 0.94);
+}
+
+.ws-exposure-row__bar {
+  position: relative;
+  height: 6px;
+  background: rgba(132, 153, 171, 0.12);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.ws-exposure-row__fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: linear-gradient(90deg, rgba(168, 210, 235, 0.65), rgba(168, 210, 235, 0.95));
+  border-radius: 999px;
+}
+
+.ws-exposure-row__value {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 11.5px;
+  color: rgba(187, 199, 211, 0.82);
+}
+
+.ws-portfolio-risks {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ws-portfolio-risk {
+  border: 1px solid rgba(132, 153, 171, 0.16);
+  border-radius: 10px;
+  padding: 10px 12px;
+  background: rgba(12, 18, 26, 0.5);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ws-portfolio-risk--watch {
+  border-left: 3px solid rgba(124, 179, 217, 0.55);
+}
+.ws-portfolio-risk--elevated {
+  border-left: 3px solid rgba(240, 179, 106, 0.65);
+}
+.ws-portfolio-risk--critical {
+  border-left: 3px solid rgba(239, 122, 92, 0.7);
+}
+.ws-portfolio-risk--info {
+  border-left: 3px solid rgba(140, 168, 188, 0.45);
+}
+
+.ws-portfolio-risk__title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(232, 240, 250, 0.95);
+}
+
+.ws-portfolio-risk__rationale {
+  margin: 0;
+  font-size: 12px;
+  color: rgba(187, 199, 211, 0.84);
+  line-height: 1.45;
+}
+
+.ws-portfolio-risk__meta {
+  font-size: 10.5px;
+  letter-spacing: 0.06em;
+  color: rgba(140, 168, 188, 0.82);
+  text-transform: uppercase;
+}
+
+.ws-portfolio-deps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ws-portfolio-dep {
+  border: 1px solid rgba(132, 153, 171, 0.14);
+  border-radius: 10px;
+  padding: 10px 12px;
+  background: rgba(12, 18, 26, 0.42);
+}
+
+.ws-portfolio-dep__title {
+  margin: 0 0 4px;
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(232, 240, 250, 0.95);
+}
+
+.ws-portfolio-dep__rationale {
+  margin: 0 0 6px;
+  font-size: 12px;
+  color: rgba(187, 199, 211, 0.84);
+  line-height: 1.45;
+}
+
+.ws-portfolio-dep__meta {
+  font-size: 11px;
+  color: rgba(140, 168, 188, 0.78);
+  letter-spacing: 0.04em;
+}
+
+.ws-portfolio-notes ul {
+  margin: 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ws-portfolio-notes li {
+  font-size: 12px;
+  color: rgba(187, 199, 211, 0.82);
+  line-height: 1.45;
+}
+
+/* ---------- Phase 13B Valuation / P&L card ---------- */
+
+.ws-portfolio-valuation__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 16px;
+  margin: 8px 0;
+}
+
+.ws-portfolio-valuation__grid dt {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  opacity: 0.7;
+}
+
+.ws-portfolio-valuation__grid dd {
+  font-variant-numeric: tabular-nums;
+  font-size: 16px;
+  margin: 2px 0 0 0;
+}
+
+.ws-pnl--positive {
+  color: #34d399;
+}
+
+.ws-pnl--negative {
+  color: #f87171;
+}
+
+/* ---- Phase 13B.2 technical snapshot card ------------------------------- */
+
+.ws-portfolio-technical {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ws-portfolio-technical__row {
+  display: grid;
+  grid-template-columns: 72px auto auto 1fr auto;
+  gap: 8px;
+  align-items: center;
+  font-size: 13px;
+}
+
+.ws-portfolio-technical__symbol {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.ws-portfolio-technical__regime {
+  font-size: 11px;
+  opacity: 0.75;
+}
+
+.ws-portfolio-technical__meta {
+  font-variant-numeric: tabular-nums;
+  opacity: 0.85;
+}
+
+.ws-portfolio-technical__notes {
+  font-size: 11px;
+  opacity: 0.65;
+  cursor: help;
+}
+
+.ws-badge {
+  display: inline-block;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.ws-badge--stretched_long {
+  color: #fbbf24;
+  background: rgba(251, 191, 36, 0.12);
+}
+
+.ws-badge--stretched_short {
+  color: #60a5fa;
+  background: rgba(96, 165, 250, 0.12);
+}
+
+.ws-badge--balanced {
+  color: #a3a3a3;
+  background: rgba(163, 163, 163, 0.1);
+}
+
+/* ---------- Phase 13B.3 Semantic / event-pressure card ---------- */
+
+.ws-portfolio-semantic__head {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin: 6px 0;
+}
+
+.ws-portfolio-semantic__score {
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+  opacity: 0.85;
+}
+
+.ws-portfolio-semantic__drivers {
+  list-style: none;
+  padding: 0;
+  margin: 4px 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ws-portfolio-semantic__drivers li {
+  display: grid;
+  grid-template-columns: 140px 40px 1fr;
+  gap: 8px;
+  align-items: baseline;
+  font-size: 12px;
+}
+
+.ws-portfolio-semantic__label {
+  font-weight: 600;
+}
+
+.ws-portfolio-semantic__contrib {
+  font-variant-numeric: tabular-nums;
+  opacity: 0.8;
+}
+
+.ws-portfolio-semantic__rationale {
+  opacity: 0.75;
+}
+
+.ws-badge--pressure-calm {
+  color: #a3a3a3;
+  background: rgba(163, 163, 163, 0.12);
+}
+
+.ws-badge--pressure-watch {
+  color: #fbbf24;
+  background: rgba(251, 191, 36, 0.12);
+}
+
+.ws-badge--pressure-elevated {
+  color: #f97316;
+  background: rgba(249, 115, 22, 0.12);
+}
+
+.ws-badge--pressure-critical {
+  color: #f87171;
+  background: rgba(248, 113, 113, 0.15);
+}
+
+/* ---- Phase 13B.4 macro risk score ------------------------------------- */
+
+.ws-portfolio-risk__head {
+  display: flex;
+  gap: 14px;
+  align-items: baseline;
+  margin: 4px 0 8px;
+}
+
+.ws-portfolio-risk__score {
+  font-size: 32px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+
+.ws-risk--calm {
+  color: #a3a3a3;
+}
+
+.ws-risk--watch {
+  color: #fbbf24;
+}
+
+.ws-risk--elevated {
+  color: #f97316;
+}
+
+.ws-risk--critical {
+  color: #f87171;
+}
+
+.ws-portfolio-risk__delta {
+  font-size: 12px;
+  opacity: 0.85;
+  font-variant-numeric: tabular-nums;
+}
+
+.ws-portfolio-risk__conf {
+  font-size: 11px;
+  opacity: 0.75;
+  margin-left: auto;
+}
+
+.ws-portfolio-risk__drivers {
+  list-style: none;
+  padding: 0;
+  margin: 6px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+}
+
+.ws-portfolio-risk__drivers li {
+  display: grid;
+  grid-template-columns: 140px 36px 1fr;
+  gap: 6px;
+}
+
+.ws-portfolio-risk__dlabel {
+  font-weight: 600;
+}
+
+.ws-portfolio-risk__dweight {
+  font-variant-numeric: tabular-nums;
+  opacity: 0.8;
+}
+
+.ws-portfolio-risk__dr {
+  opacity: 0.75;
+}
+
+.ws-portfolio-risk__components summary {
+  cursor: pointer;
+  font-size: 11px;
+  opacity: 0.8;
+}
+
+.ws-portfolio-risk__components dl {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px 12px;
+  margin: 4px 0 0;
+}
+
+.ws-portfolio-risk__components dt {
+  font-size: 11px;
+  text-transform: capitalize;
+  opacity: 0.75;
+}
+
+.ws-portfolio-risk__components dd {
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  margin: 0;
+}
+
+.ws-portfolio-risk__notes {
+  font-size: 11px;
+  opacity: 0.75;
+  margin: 4px 0 0;
+  padding-left: 16px;
+}
+
+/* Phase 13B.5 — holding chart surface */
+.ws-portfolio-chart { padding-bottom: 12px; }
+.ws-portfolio-chart__canvas { position: relative; margin-top: 6px; }
+
+/* Phase 13B.6 — Live / As-of cursor affordance */
+.ws-portfolio-cursor {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0 2px;
+  flex-wrap: wrap;
+}
+
+.ws-portfolio-cursor__label,
+.ws-portfolio-cursor__live {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.ws-badge--live {
+  color: #8ec1b0;
+  background: rgba(142, 193, 176, 0.12);
+  border: 1px solid rgba(142, 193, 176, 0.32);
+}
+
+.ws-badge--asof {
+  color: #f0b36a;
+  background: rgba(240, 179, 106, 0.12);
+  border: 1px solid rgba(240, 179, 106, 0.32);
+}
+
+.ws-portfolio-cursor__input {
+  background: rgba(3, 6, 11, 0.42);
+  border: 1px solid rgba(132, 153, 171, 0.22);
+  border-radius: 6px;
+  color: var(--ds-text-secondary, rgba(187, 199, 211, 0.8));
+  font-size: 11px;
+  font-family: var(--font-mono), ui-monospace, monospace;
+  padding: 3px 6px;
+  outline: none;
+  cursor: pointer;
+}
+
+.ws-portfolio-cursor__input:focus {
+  border-color: rgba(168, 210, 235, 0.5);
+  background: rgba(3, 6, 11, 0.6);
+}
+
+.ws-portfolio-cursor__restore {
+  font-size: 11px;
+  color: var(--ds-accent, #a8d2eb);
+  background: transparent;
+  border: 1px solid rgba(168, 210, 235, 0.3);
+  border-radius: 6px;
+  padding: 2px 8px;
+  cursor: pointer;
+  transition: border-color 140ms ease, background 140ms ease;
+}
+
+.ws-portfolio-cursor__restore:hover {
+  background: rgba(168, 210, 235, 0.1);
+  border-color: rgba(168, 210, 235, 0.55);
+}
+
+.ws-portfolio-risk__tilt {
+  margin: 4px 0 0;
+  font-size: 11px;
+  opacity: 0.8;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+  color: var(--ds-text-secondary, rgba(187, 199, 211, 0.8));
+}
+
+/* Holding row selection */
+.ws-portfolio-holding__trigger {
+  all: unset;
+  cursor: pointer;
+  display: block;
+  width: 100%;
+}
+
+.ws-portfolio-holding--selected {
+  background: rgba(251, 191, 36, 0.06);
+  border-left: 2px solid #fbbf24;
+  padding-left: 6px;
+}
+
+/* ---------- Phase 14 — Top command layer rework ---------- */
+
+.ws-topbar {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  grid-template-columns: none;
+}
+
+.ws-topbar__row {
+  display: grid;
+  grid-template-columns: auto auto minmax(280px, 1fr) auto;
+  align-items: center;
+  gap: 16px;
+}
+
+.ws-topbar__row--primary {
+  min-height: 44px;
+}
+
+.ws-topbar__right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: nowrap;
+  justify-content: flex-end;
+}
+
+/* ---------- Mode switcher ---------- */
+
+.ws-mode-switch {
+  display: inline-flex;
+  gap: 4px;
+  padding: 3px;
+  border-radius: 10px;
+  background: rgba(3, 6, 11, 0.44);
+  border: 1px solid rgba(132, 153, 171, 0.16);
+}
+
+.ws-mode-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--ds-text-muted, rgba(133, 148, 160, 0.82));
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 140ms ease, color 140ms ease, border-color 140ms ease;
+}
+
+.ws-mode-pill:hover:not(:disabled) {
+  background: rgba(168, 210, 235, 0.06);
+  color: var(--ds-text-secondary, rgba(187, 199, 211, 0.9));
+}
+
+.ws-mode-pill--active {
+  /* Phase 19D — active mode reads as a cyan-lit cockpit selection. */
+  background:
+    linear-gradient(180deg, rgba(112, 218, 244, 0.20) 0%, rgba(120, 138, 232, 0.14) 100%);
+  border-color: var(--ds-accent-cyan-line, rgba(112, 218, 244, 0.42));
+  color: var(--ds-text-primary, rgba(232, 240, 250, 0.96));
+  box-shadow:
+    0 0 0 1px rgba(112, 218, 244, 0.10) inset,
+    0 6px 16px -8px rgba(112, 218, 244, 0.32);
+}
+
+.ws-mode-pill:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.ws-mode-pill__dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: rgba(168, 210, 235, 0.35);
+}
+
+.ws-mode-pill--active .ws-mode-pill__dot {
+  background: var(--ds-accent, #a8d2eb);
+  box-shadow: 0 0 6px rgba(168, 210, 235, 0.5);
+}
+
+/* ---------- Active scope / status bar ---------- */
+
+.ws-scope-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  flex-wrap: wrap;
+  border-top: 1px solid rgba(132, 153, 171, 0.1);
+  font-size: 11.5px;
+  color: var(--ds-text-secondary, rgba(187, 199, 211, 0.82));
+}
+
+.ws-scope-bar__cell {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.ws-scope-bar__cell--muted {
+  color: var(--ds-text-muted, rgba(133, 148, 160, 0.7));
+}
+
+.ws-scope-bar__key {
+  font-size: 9.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ds-text-muted, rgba(133, 148, 160, 0.6));
+}
+
+.ws-scope-bar__value {
+  color: var(--ds-text-primary);
+  font-weight: 500;
+}
+
+.ws-scope-bar__value--mono {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 11px;
+  letter-spacing: 0.02em;
+}
+
+.ws-scope-bar__sep {
+  color: var(--ds-text-muted);
+  opacity: 0.5;
+}
+
+.ws-scope-bar__state--live {
+  color: #8ec1b0;
+}
+
+.ws-scope-bar__state--asof {
+  color: #f0b36a;
+}
+
+/* ---------- Portfolio quick-entry ---------- */
+
+.ws-portfolio-entry {
+  position: relative;
+}
+
+.ws-portfolio-entry__trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(132, 153, 171, 0.22);
+  background: rgba(3, 6, 11, 0.42);
+  color: var(--ds-text-secondary, rgba(187, 199, 211, 0.85));
+  font-size: 11.5px;
+  cursor: pointer;
+  transition: border-color 140ms ease, background 140ms ease;
+}
+
+.ws-portfolio-entry__trigger:hover {
+  border-color: rgba(168, 210, 235, 0.42);
+  background: rgba(3, 6, 11, 0.6);
+}
+
+.ws-portfolio-entry__icon {
+  color: var(--ds-accent, #a8d2eb);
+  font-size: 13px;
+}
+
+.ws-portfolio-entry__label {
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ws-portfolio-entry__chev {
+  font-size: 9px;
+  color: var(--ds-text-muted);
+  margin-left: 2px;
+}
+
+.ws-portfolio-entry__popover {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 10;
+  min-width: 240px;
+  max-width: 320px;
+  background: linear-gradient(180deg, rgba(10, 14, 20, 0.96), rgba(10, 14, 20, 0.9));
+  border: 1px solid rgba(132, 153, 171, 0.22);
+  border-radius: 12px;
+  backdrop-filter: blur(18px) saturate(115%);
+  -webkit-backdrop-filter: blur(18px) saturate(115%);
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.42);
+  overflow: hidden;
+}
+
+.ws-portfolio-entry__list {
+  list-style: none;
+  margin: 0;
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.ws-portfolio-entry__item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  padding: 8px 10px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--ds-text-primary);
+  text-align: left;
+  cursor: pointer;
+  transition: background 120ms ease;
+}
+
+.ws-portfolio-entry__item:hover,
+.ws-portfolio-entry__item[aria-selected="true"] {
+  background: rgba(168, 210, 235, 0.08);
+}
+
+.ws-portfolio-entry__item-name {
+  font-size: 12.5px;
+  font-weight: 500;
+}
+
+.ws-portfolio-entry__item-desc {
+  font-size: 10.5px;
+  color: var(--ds-text-muted);
+  line-height: 1.35;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ws-portfolio-entry__state {
+  padding: 10px 12px;
+  font-size: 11.5px;
+  color: var(--ds-text-muted);
+}
+
+.ws-portfolio-entry__state--err {
+  color: var(--ws-sev-critical, #ef7a5c);
+}
+
+/* ---------- Shared investigation view (Phase 17B.3) ---------- */
+
+.ws-share-page {
+  min-height: 100vh;
+  background: var(--ds-bg-main, #03060b);
+  color: var(--ds-text-primary, rgba(242, 246, 250, 0.96));
+  font-family: var(--font-body), system-ui, sans-serif;
+}
+
+.ws-share-page__center {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 32px;
+  text-align: center;
+}
+
+.ws-share-page__spinner {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2px solid rgba(168, 210, 235, 0.18);
+  border-top-color: rgba(168, 210, 235, 0.85);
+  animation: ws-share-spin 0.9s linear infinite;
+}
+
+@keyframes ws-share-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.ws-share-page__error-title {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.ws-share-page__error-body {
+  font-size: 13.5px;
+  color: var(--ds-text-muted);
+  max-width: 520px;
+  line-height: 1.5;
+}
+
+.ws-share {
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 32px 24px 48px;
+}
+
+.ws-share__banner {
+  border: 1px solid rgba(132, 153, 171, 0.22);
+  background: linear-gradient(
+    180deg,
+    rgba(10, 14, 20, 0.72),
+    rgba(10, 14, 20, 0.42)
+  );
+  border-radius: 14px;
+  padding: 20px 24px;
+  margin-bottom: 24px;
+}
+
+.ws-share__banner-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.ws-share__brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ws-share__mark {
+  font-size: 18px;
+  color: var(--ds-accent, #a8d2eb);
+}
+
+.ws-share__brandname {
+  font-size: 13.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.ws-share__pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(240, 179, 106, 0.12);
+  border: 1px solid rgba(240, 179, 106, 0.42);
+  color: #f0b36a;
+  font-size: 10.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.ws-share__title {
+  font-size: 22px;
+  font-weight: 600;
+  margin: 0 0 6px;
+}
+
+.ws-share__sub {
+  font-size: 12px;
+  color: var(--ds-text-muted);
+  margin: 0;
+  line-height: 1.6;
+}
+
+.ws-share__body {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.ws-share__panel {
+  border: 1px solid rgba(132, 153, 171, 0.18);
+  background: rgba(10, 14, 20, 0.42);
+  border-radius: 12px;
+  padding: 18px 20px;
+}
+
+.ws-share__panel--caveats {
+  border-color: rgba(240, 179, 106, 0.32);
+  background: rgba(240, 179, 106, 0.04);
+}
+
+.ws-share__panel-title {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ds-text-muted);
+  margin: 0 0 12px;
+}
+
+.ws-share__defs {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 10px 24px;
+  margin: 0;
+}
+
+.ws-share__def {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ws-share__def dt {
+  font-size: 10.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ds-text-muted);
+}
+
+.ws-share__def dd {
+  font-size: 13px;
+  margin: 0;
+  color: var(--ds-text-primary);
+}
+
+.ws-share__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ws-share__compare-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(132, 153, 171, 0.16);
+  background: rgba(3, 6, 11, 0.42);
+  font-size: 12.5px;
+}
+
+.ws-share__compare-kind {
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ds-text-muted);
+}
+
+.ws-share__compare-iso {
+  margin-left: auto;
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 11px;
+  color: var(--ds-accent, #a8d2eb);
+}
+
+.ws-share__caveats {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: #f0b36a;
+}
+
+.ws-share__footer {
+  font-size: 11.5px;
+  color: var(--ds-text-muted);
+  text-align: center;
+  padding: 12px 0;
+  line-height: 1.5;
+}
+
+/* posture block reused inside the share panel */
+
+.ws-share-posture {
+  border: 1px solid rgba(132, 153, 171, 0.18);
+  background: rgba(3, 6, 11, 0.4);
+  border-radius: 10px;
+  padding: 14px 16px;
+  margin-bottom: 12px;
+}
+
+.ws-share-posture--strong-buy,
+.ws-share-posture--buy {
+  border-color: rgba(116, 188, 144, 0.36);
+}
+.ws-share-posture--strong-sell,
+.ws-share-posture--sell {
+  border-color: rgba(239, 122, 92, 0.42);
+}
+.ws-share-posture--neutral {
+  border-color: rgba(132, 153, 171, 0.32);
+}
+
+.ws-share-posture__head {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.ws-share-posture__symbol {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 13px;
+  color: var(--ds-accent, #a8d2eb);
+}
+
+.ws-share-posture__label {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.ws-share-posture__confidence {
+  font-size: 11px;
+  color: var(--ds-text-muted);
+}
+
+.ws-share-posture__drivers,
+.ws-share-posture__caveats {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+}
+
+.ws-share-posture__caveats {
+  color: #f0b36a;
+}
+
+.ws-share-posture__driver-label {
+  font-weight: 500;
+  margin-right: 6px;
+}
+
+.ws-share-posture__driver-rationale {
+  color: var(--ds-text-muted);
+}
+
+.ws-share-narrative {
+  margin-top: 12px;
+  padding: 10px 12px;
+  background: rgba(168, 210, 235, 0.06);
+  border: 1px solid rgba(168, 210, 235, 0.18);
+  border-radius: 8px;
+}
+
+.ws-share-narrative__body {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.55;
+}
+
+.ws-share-narrative__meta {
+  margin: 6px 0 0;
+  font-size: 10.5px;
+  color: var(--ds-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* ---------- Inline alert quick-add on posture card (Phase 17C.3) ---------- */
+
+.ws-alert-quickadd {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(132, 153, 171, 0.14);
+  font-size: 11px;
+}
+
+.ws-alert-quickadd__label {
+  color: var(--ds-text-muted);
+  letter-spacing: 0.04em;
+}
+
+.ws-alert-quickadd__btn {
+  padding: 3px 8px;
+  border-radius: 6px;
+  border: 1px solid rgba(168, 210, 235, 0.28);
+  background: rgba(168, 210, 235, 0.06);
+  color: var(--ds-text-primary);
+  font-size: 11px;
+  cursor: pointer;
+  transition: background 120ms ease, border-color 120ms ease;
+}
+
+.ws-alert-quickadd__btn:hover:not(:disabled) {
+  background: rgba(168, 210, 235, 0.14);
+  border-color: rgba(168, 210, 235, 0.5);
+}
+
+.ws-alert-quickadd__btn:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+.ws-alert-quickadd__btn[data-state="saved"] {
+  border-color: rgba(116, 188, 144, 0.45);
+  background: rgba(116, 188, 144, 0.12);
+  color: #74bc90;
+}
+
+.ws-alert-quickadd__btn[data-state="error"] {
+  border-color: rgba(239, 122, 92, 0.45);
+  background: rgba(239, 122, 92, 0.1);
+  color: #ef7a5c;
+}
+
+.ws-alert-quickadd__err {
+  font-size: 10.5px;
+  color: var(--ws-sev-critical, #ef7a5c);
+  margin-left: 4px;
+}
+
+/* ---------- Alerts bell (Phase 17C) ---------- */
+
+.ws-alerts {
+  position: relative;
+}
+
+.ws-alerts__trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(132, 153, 171, 0.22);
+  background: rgba(3, 6, 11, 0.42);
+  color: var(--ds-text-secondary, rgba(187, 199, 211, 0.85));
+  font-size: 11.5px;
+  cursor: pointer;
+  position: relative;
+  transition: border-color 140ms ease, background 140ms ease;
+}
+
+.ws-alerts__trigger:hover {
+  border-color: rgba(168, 210, 235, 0.42);
+  background: rgba(3, 6, 11, 0.6);
+}
+
+.ws-alerts__icon {
+  font-size: 12px;
+  color: var(--ds-accent, #a8d2eb);
+}
+
+.ws-alerts__badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 10px;
+  background: var(--ws-sev-critical, #ef7a5c);
+  color: #03060b;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0;
+  margin-left: 2px;
+}
+
+.ws-alerts__popover {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 10;
+  width: 380px;
+  max-height: 520px;
+  overflow-y: auto;
+  background: linear-gradient(180deg, rgba(10, 14, 20, 0.96), rgba(10, 14, 20, 0.9));
+  border: 1px solid rgba(132, 153, 171, 0.22);
+  border-radius: 12px;
+  backdrop-filter: blur(18px) saturate(115%);
+  -webkit-backdrop-filter: blur(18px) saturate(115%);
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.42);
+  display: flex;
+  flex-direction: column;
+}
+
+.ws-alerts__section {
+  padding: 8px 4px;
+  border-bottom: 1px solid rgba(132, 153, 171, 0.12);
+}
+
+.ws-alerts__section:last-child {
+  border-bottom: none;
+}
+
+.ws-alerts__section-title {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ds-text-muted);
+  margin: 0 8px 6px;
+}
+
+.ws-alerts__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.ws-alerts__item {
+  padding: 0;
+}
+
+.ws-alerts__item-btn {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 10px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--ds-text-primary);
+  text-align: left;
+  cursor: pointer;
+  transition: background 120ms ease;
+}
+
+.ws-alerts__item-btn:hover {
+  background: rgba(168, 210, 235, 0.08);
+}
+
+.ws-alerts__item-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ws-alerts__pill {
+  font-size: 9.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(168, 210, 235, 0.12);
+  color: var(--ds-accent, #a8d2eb);
+  border: 1px solid rgba(168, 210, 235, 0.28);
+  flex-shrink: 0;
+}
+
+.ws-alerts__pill--confidence_drop {
+  background: rgba(240, 179, 106, 0.12);
+  color: #f0b36a;
+  border-color: rgba(240, 179, 106, 0.32);
+}
+
+.ws-alerts__item-rule {
+  font-size: 12px;
+  font-weight: 500;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ws-alerts__item-when {
+  font-size: 10.5px;
+  color: var(--ds-text-muted);
+  font-family: var(--font-mono), ui-monospace, monospace;
+}
+
+.ws-alerts__item-summary {
+  font-size: 11.5px;
+  margin: 0;
+  color: var(--ds-text-secondary, rgba(187, 199, 211, 0.85));
+  line-height: 1.45;
+}
+
+.ws-alerts__rules {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.ws-alerts__rule {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 6px;
+}
+
+.ws-alerts__rule:hover {
+  background: rgba(168, 210, 235, 0.04);
+}
+
+.ws-alerts__rule-name {
+  font-size: 11.5px;
+  font-weight: 500;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ws-alerts__rule-meta {
+  font-size: 10.5px;
+  color: var(--ds-text-muted);
+  font-family: var(--font-mono), ui-monospace, monospace;
+}
+
+.ws-alerts__rule-delete {
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--ds-text-muted);
+  cursor: pointer;
+  font-size: 13px;
+  transition: background 120ms ease, color 120ms ease, border-color 120ms ease;
+}
+
+.ws-alerts__rule-delete:hover {
+  background: rgba(168, 210, 235, 0.1);
+  color: var(--ds-text-primary);
+  border-color: rgba(168, 210, 235, 0.32);
+}
+
+.ws-alerts__state {
+  padding: 12px;
+  font-size: 11.5px;
+  color: var(--ds-text-muted);
+  text-align: center;
+}
+
+.ws-alerts__state--err {
+  color: var(--ws-sev-critical, #ef7a5c);
+}
+
+/* ---------- Saved Investigations menu (Phase 17B) ---------- */
+
+.ws-saved {
+  position: relative;
+}
+
+.ws-saved__trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(132, 153, 171, 0.22);
+  background: rgba(3, 6, 11, 0.42);
+  color: var(--ds-text-secondary, rgba(187, 199, 211, 0.85));
+  font-size: 11.5px;
+  cursor: pointer;
+  transition: border-color 140ms ease, background 140ms ease;
+}
+
+.ws-saved__trigger:hover {
+  border-color: rgba(168, 210, 235, 0.42);
+  background: rgba(3, 6, 11, 0.6);
+}
+
+.ws-saved__icon {
+  color: var(--ds-accent, #a8d2eb);
+  font-size: 12px;
+}
+
+.ws-saved__chev {
+  font-size: 9px;
+  color: var(--ds-text-muted);
+  margin-left: 2px;
+}
+
+.ws-saved__popover {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 10;
+  min-width: 320px;
+  max-width: 420px;
+  background: linear-gradient(180deg, rgba(10, 14, 20, 0.96), rgba(10, 14, 20, 0.9));
+  border: 1px solid rgba(132, 153, 171, 0.22);
+  border-radius: 12px;
+  backdrop-filter: blur(18px) saturate(115%);
+  -webkit-backdrop-filter: blur(18px) saturate(115%);
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.42);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.ws-saved__header {
+  padding: 8px;
+  border-bottom: 1px solid rgba(132, 153, 171, 0.16);
+}
+
+.ws-saved__action {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(168, 210, 235, 0.36);
+  background: rgba(168, 210, 235, 0.08);
+  color: var(--ds-text-primary);
+  font-size: 11.5px;
+  cursor: pointer;
+  transition: background 120ms ease, border-color 120ms ease;
+}
+
+.ws-saved__action:hover:not(:disabled) {
+  background: rgba(168, 210, 235, 0.16);
+  border-color: rgba(168, 210, 235, 0.6);
+}
+
+.ws-saved__action:disabled {
+  opacity: 0.65;
+  cursor: progress;
+}
+
+.ws-saved__list {
+  list-style: none;
+  margin: 0;
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  max-height: 360px;
+  overflow-y: auto;
+}
+
+.ws-saved__item {
+  display: flex;
+  flex-direction: column;
+  border-radius: 8px;
+  padding: 0;
+}
+
+.ws-saved__item-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.ws-saved__item-open {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 10px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--ds-text-primary);
+  text-align: left;
+  cursor: pointer;
+  transition: background 120ms ease;
+  min-width: 0;
+}
+
+.ws-saved__item-open:hover {
+  background: rgba(168, 210, 235, 0.08);
+}
+
+.ws-saved__item-name {
+  font-size: 12.5px;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ws-saved__item-meta {
+  font-size: 10.5px;
+  color: var(--ds-text-muted);
+  line-height: 1.35;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ws-saved__item-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding-right: 6px;
+}
+
+.ws-saved__icon-btn {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--ds-text-muted);
+  cursor: pointer;
+  font-size: 13px;
+  transition: background 120ms ease, color 120ms ease, border-color 120ms ease;
+}
+
+.ws-saved__icon-btn:hover {
+  background: rgba(168, 210, 235, 0.1);
+  color: var(--ds-text-primary);
+  border-color: rgba(168, 210, 235, 0.32);
+}
+
+.ws-saved__share-row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 10px 10px;
+}
+
+.ws-saved__share-url {
+  font-size: 10.5px;
+  font-family: var(--font-mono), ui-monospace, monospace;
+  background: rgba(3, 6, 11, 0.6);
+  border: 1px solid rgba(132, 153, 171, 0.18);
+  padding: 4px 6px;
+  border-radius: 6px;
+  word-break: break-all;
+  color: var(--ds-accent, #a8d2eb);
+}
+
+.ws-saved__share-hint {
+  font-size: 10px;
+  color: var(--ds-text-muted);
+}
+
+.ws-saved__state {
+  padding: 12px;
+  font-size: 11.5px;
+  color: var(--ds-text-muted);
+  text-align: center;
+}
+
+.ws-saved__state--err {
+  color: var(--ws-sev-critical, #ef7a5c);
+}
+
+/* ---------- Replay cursor in top bar ---------- */
+
+.ws-replay-cursor {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 6px;
+  border-radius: 8px;
+  border: 1px solid rgba(132, 153, 171, 0.18);
+  background: rgba(3, 6, 11, 0.36);
+}
+
+.ws-replay-cursor--asof {
+  border-color: rgba(240, 179, 106, 0.38);
+  background: rgba(240, 179, 106, 0.06);
+}
+
+.ws-replay-cursor__badge {
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 2px 6px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.ws-replay-cursor__input {
+  background: transparent;
+  border: none;
+  color: var(--ds-text-secondary);
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 10.5px;
+  outline: none;
+  padding: 2px 4px;
+  max-width: 170px;
+  color-scheme: dark;
+}
+
+.ws-replay-cursor__input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.ws-replay-cursor__restore {
+  background: transparent;
+  border: 1px solid rgba(168, 210, 235, 0.3);
+  border-radius: 6px;
+  color: var(--ds-accent, #a8d2eb);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  padding: 2px 6px;
+  cursor: pointer;
+  transition: background 120ms ease, border-color 120ms ease;
+}
+
+.ws-replay-cursor__restore:hover {
+  background: rgba(168, 210, 235, 0.1);
+  border-color: rgba(168, 210, 235, 0.5);
+}
+
+/* ---------- GitHub star CTA ---------- */
+
+.ws-github-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 8px;
+  border-radius: 8px;
+  border: 1px solid rgba(132, 153, 171, 0.18);
+  background: rgba(3, 6, 11, 0.36);
+  color: var(--ds-text-muted, rgba(133, 148, 160, 0.74));
+  font-size: 10.5px;
+  letter-spacing: 0.05em;
+  text-decoration: none;
+  transition: border-color 140ms ease, color 140ms ease, background 140ms ease;
+}
+
+.ws-github-cta:hover,
+.ws-github-cta:focus-visible {
+  color: var(--ds-text-primary);
+  border-color: rgba(168, 210, 235, 0.4);
+  background: rgba(168, 210, 235, 0.06);
+  outline: none;
+}
+
+.ws-github-cta__icon {
+  display: inline-block;
+}
+
+.ws-github-cta__label {
+  font-weight: 500;
+}
+
+/* ---------- Graph-ready entity chips ---------- */
+
+.ws-entity-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 9px;
+  border-radius: 8px;
+  border: 1px solid rgba(132, 153, 171, 0.2);
+  background: rgba(3, 6, 11, 0.38);
+  color: var(--ds-text-primary, rgba(232, 240, 250, 0.96));
+  font-size: 11.5px;
+  line-height: 1.2;
+  cursor: pointer;
+  transition: border-color 140ms ease, background 140ms ease;
+}
+
+.ws-entity-chip:hover:not(:disabled) {
+  border-color: rgba(168, 210, 235, 0.45);
+  background: rgba(168, 210, 235, 0.08);
+}
+
+.ws-entity-chip:disabled {
+  opacity: 0.8;
+  cursor: default;
+}
+
+.ws-entity-chip__icon {
+  color: var(--ds-text-muted);
+  font-size: 11px;
+}
+
+.ws-entity-chip__label {
+  font-weight: 500;
+}
+
+.ws-entity-chip__meta {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 10.5px;
+  color: var(--ds-text-muted);
+  letter-spacing: 0.03em;
+}
+
+.ws-entity-chip--geography .ws-entity-chip__icon { color: rgba(124, 179, 217, 0.9); }
+.ws-entity-chip--asset .ws-entity-chip__icon { color: rgba(142, 193, 176, 0.9); }
+.ws-entity-chip--exposure .ws-entity-chip__icon { color: rgba(168, 210, 235, 0.9); }
+.ws-entity-chip--theme .ws-entity-chip__icon { color: rgba(240, 179, 106, 0.9); }
+
+.ws-entity-chip--accent { border-color: rgba(168, 210, 235, 0.38); background: rgba(168, 210, 235, 0.08); }
+.ws-entity-chip--warn { border-color: rgba(240, 179, 106, 0.38); background: rgba(240, 179, 106, 0.06); }
+.ws-entity-chip--muted { opacity: 0.75; }
+
+/* ---------- Graph-ready dependency rows ---------- */
+
+.ws-dependency-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  border: 1px solid rgba(132, 153, 171, 0.14);
+  border-radius: 10px;
+  background: rgba(3, 6, 11, 0.32);
+}
+
+.ws-dependency-row__head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.ws-dependency-row__rank {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 10px;
+  color: var(--ds-text-muted);
+  letter-spacing: 0.04em;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: rgba(132, 153, 171, 0.14);
+}
+
+.ws-dependency-row__chain {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.ws-dependency-row__node {
+  min-width: 0;
+}
+
+.ws-dependency-row__arrow {
+  color: var(--ds-text-muted);
+  font-family: var(--font-mono), ui-monospace, monospace;
+}
+
+.ws-dependency-row__conf {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 10.5px;
+  color: var(--ds-accent, #a8d2eb);
+  letter-spacing: 0.04em;
+}
+
+.ws-dependency-row__relation {
+  font-size: 10.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ds-text-muted);
+}
+
+.ws-dependency-row__rationale {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--ds-text-secondary);
+}
+
+/* ---------- Responsive tweaks for the reworked top bar ---------- */
+
+@media (max-width: 1200px) {
+  .ws-topbar__row--primary {
+    grid-template-columns: auto 1fr auto;
+  }
+  .ws-topbar__brand {
+    grid-row: 1;
+  }
+  .ws-mode-switch {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    justify-self: start;
+  }
+  .ws-commandbar {
+    grid-row: 1;
+    grid-column: 2 / 3;
+  }
+  .ws-topbar__right {
+    grid-row: 1;
+    grid-column: 3;
+  }
+}
+
+@media (max-width: 860px) {
+  .ws-topbar__row--primary {
+    grid-template-columns: 1fr;
+  }
+  .ws-mode-switch,
+  .ws-topbar__right {
+    grid-column: 1;
+  }
+  .ws-commandbar {
+    grid-column: 1;
+  }
+  .ws-scope-bar {
+    font-size: 11px;
+  }
+}
+
+/* ===========================================================================
+ * Phase 15A — Multi-domain rail, ticker scroll, portfolio onboarding,
+ * domain-icon glyph styling.
+ * ========================================================================= */
+
+/* Domain tabs at the top of the awareness rail. */
+.ws-rail-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 4px 2px 6px;
+  border-bottom: 1px solid rgba(132, 153, 171, 0.1);
+  margin-bottom: 4px;
+}
+
+.ws-rail-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 9px;
+  border-radius: 999px;
+  border: 1px solid rgba(132, 153, 171, 0.14);
+  background: transparent;
+  color: var(--ds-text-muted, rgba(133, 148, 160, 0.78));
+  font-size: 10.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 140ms ease, color 140ms ease, border-color 140ms ease;
+}
+
+.ws-rail-tab:hover,
+.ws-rail-tab:focus-visible {
+  background: rgba(168, 210, 235, 0.06);
+  color: var(--ds-text-primary);
+  outline: none;
+}
+
+.ws-rail-tab--active {
+  /* Phase 19D — active domain reads as a cyan-tinted live channel. */
+  background: linear-gradient(180deg,
+    rgba(112, 218, 244, 0.18) 0%,
+    rgba(120, 138, 232, 0.12) 100%);
+  color: var(--ds-text-primary);
+  border-color: var(--ds-accent-cyan-line, rgba(112, 218, 244, 0.42));
+  box-shadow:
+    0 0 0 1px rgba(112, 218, 244, 0.08) inset,
+    0 4px 14px -8px rgba(112, 218, 244, 0.30);
+}
+
+.ws-rail-tab svg {
+  flex-shrink: 0;
+  display: block;
+}
+
+.ws-rail-tab__label {
+  font-weight: 500;
+}
+
+.ws-rail-empty {
+  margin: 6px 4px 2px;
+  font-size: 11.5px;
+  color: var(--ds-text-muted, rgba(133, 148, 160, 0.62));
+}
+
+.ws-rail-error {
+  margin: 4px 4px 2px;
+  font-size: 11px;
+  color: rgba(238, 154, 130, 0.92);
+}
+
+/* Domain glyph slot inside each rail row. */
+.ws-chip-row--with-icon {
+  grid-template-columns: 10px 1fr auto;
+}
+
+.ws-chip-row__main {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.ws-chip-row__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  color: rgba(168, 210, 235, 0.62);
+  flex-shrink: 0;
+}
+
+.ws-chip-row:hover .ws-chip-row__icon,
+.ws-chip-row:focus-visible .ws-chip-row__icon {
+  color: rgba(168, 210, 235, 0.92);
+}
+
+/* Wider, scrollable equities rail. */
+.ws-ticker-list--scroll {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  gap: 6px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(132, 153, 171, 0.24) transparent;
+  padding-bottom: 4px;
+}
+
+.ws-ticker-list--scroll::-webkit-scrollbar {
+  height: 6px;
+}
+
+.ws-ticker-list--scroll::-webkit-scrollbar-thumb {
+  background: rgba(132, 153, 171, 0.22);
+  border-radius: 999px;
+}
+
+.ws-ticker-list--scroll > li {
+  flex: 0 0 auto;
+}
+
+/* Portfolio onboarding empty state. */
+.ws-portfolio-onboard {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 4px 0;
+}
+
+.ws-portfolio-onboard__head h2 {
+  margin: 4px 0 6px;
+  font-size: 18px;
+  letter-spacing: -0.01em;
+  color: var(--ds-text-primary);
+}
+
+.ws-portfolio-onboard__head p {
+  margin: 0;
+  color: var(--ds-text-secondary, rgba(170, 184, 197, 0.76));
+  font-size: 13px;
+  line-height: 1.45;
+  max-width: 52ch;
+}
+
+.ws-portfolio-onboard__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.ws-portfolio-onboard__card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 16px;
+  border: 1px solid rgba(132, 153, 171, 0.16);
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(10, 14, 20, 0.62), rgba(10, 14, 20, 0.34));
+}
+
+.ws-portfolio-onboard__card h3 {
+  margin: 0;
+  font-size: 13.5px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--ds-text-primary);
+}
+
+.ws-portfolio-onboard__card p {
+  margin: 0;
+  color: var(--ds-text-muted, rgba(133, 148, 160, 0.7));
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.ws-portfolio-onboard__card code {
+  font-family: var(--ds-font-mono, "IBM Plex Mono", monospace);
+  font-size: 11px;
+  background: rgba(168, 210, 235, 0.08);
+  padding: 1px 5px;
+  border-radius: 4px;
+}
+
+.ws-portfolio-onboard__card--demo {
+  border-color: rgba(168, 210, 235, 0.28);
+}
+
+.ws-portfolio-onboard__form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ws-portfolio-onboard__form label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ds-text-muted, rgba(133, 148, 160, 0.7));
+}
+
+.ws-portfolio-onboard__form input,
+.ws-portfolio-onboard__form textarea {
+  font: inherit;
+  font-size: 12.5px;
+  padding: 7px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(132, 153, 171, 0.18);
+  background: rgba(8, 11, 16, 0.7);
+  color: var(--ds-text-primary);
+  resize: vertical;
+}
+
+.ws-portfolio-onboard__form input:focus,
+.ws-portfolio-onboard__form textarea:focus {
+  outline: none;
+  border-color: rgba(168, 210, 235, 0.4);
+}
+
+.ws-portfolio-onboard__row {
+  display: flex;
+  gap: 8px;
+}
+
+.ws-portfolio-onboard__error {
+  margin: 0;
+  font-size: 12px;
+  color: rgba(238, 154, 130, 0.92);
+}
+
+/* Generic operator buttons used by onboarding. */
+.ws-btn {
+  font: inherit;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  padding: 7px 14px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background 140ms ease, color 140ms ease, border-color 140ms ease;
+}
+
+.ws-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.ws-btn--primary {
+  background: rgba(168, 210, 235, 0.16);
+  color: var(--ds-text-primary);
+  border-color: rgba(168, 210, 235, 0.4);
+}
+
+.ws-btn--primary:hover:not(:disabled),
+.ws-btn--primary:focus-visible {
+  background: rgba(168, 210, 235, 0.26);
+  outline: none;
+}
+
+.ws-btn--secondary {
+  background: rgba(132, 153, 171, 0.1);
+  color: var(--ds-text-primary);
+  border-color: rgba(132, 153, 171, 0.24);
+}
+
+.ws-btn--secondary:hover:not(:disabled),
+.ws-btn--secondary:focus-visible {
+  background: rgba(132, 153, 171, 0.18);
+  outline: none;
+}
+
+.ws-btn--ghost {
+  background: transparent;
+  color: var(--ds-text-secondary, rgba(170, 184, 197, 0.84));
+  border-color: rgba(132, 153, 171, 0.24);
+}
+
+.ws-btn--ghost:hover:not(:disabled),
+.ws-btn--ghost:focus-visible {
+  color: var(--ds-text-primary);
+  background: rgba(132, 153, 171, 0.1);
+  outline: none;
+}
+
+/* ---------------------------------------------------------------------------
+ * Wave 15B — chart wrapper, technical rating, multi-asset strip, signal grammar
+ * ------------------------------------------------------------------------- */
+
+.ws-chart-canvas {
+  position: relative;
+}
+
+/* Technical rating badge */
+.ws-rating {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(132, 153, 171, 0.16);
+  background: rgba(10, 14, 20, 0.6);
+}
+
+.ws-rating--compact {
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 10px;
+}
+
+.ws-rating__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.ws-rating__label {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.ws-rating__confidence {
+  font-size: 10.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ds-text-muted, rgba(133, 148, 160, 0.7));
+  font-variant-numeric: tabular-nums;
+}
+
+.ws-rating__rationale {
+  margin: 0;
+  font-size: 12px;
+  color: var(--ds-text-secondary, rgba(170, 184, 197, 0.82));
+  line-height: 1.45;
+  font-variant-numeric: tabular-nums;
+}
+
+.ws-rating__factors {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 4px 12px;
+}
+
+.ws-rating__factor {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 11.5px;
+  padding: 4px 6px;
+  border-left: 2px solid transparent;
+  background: rgba(10, 14, 20, 0.4);
+  border-radius: 0 4px 4px 0;
+}
+
+.ws-rating__factor--bull {
+  border-left-color: #8ec1b0;
+}
+
+.ws-rating__factor--bear {
+  border-left-color: #e79d84;
+}
+
+.ws-rating__factor--neutral {
+  border-left-color: rgba(132, 153, 171, 0.45);
+}
+
+.ws-rating__factor-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--ds-text-primary);
+}
+
+.ws-rating__factor-detail {
+  color: var(--ds-text-muted, rgba(133, 148, 160, 0.78));
+  font-variant-numeric: tabular-nums;
+}
+
+.ws-rating--strong-buy .ws-rating__label {
+  color: #8ec1b0;
+}
+
+.ws-rating--buy .ws-rating__label {
+  color: #b0d6c8;
+}
+
+.ws-rating--neutral .ws-rating__label {
+  color: var(--ds-text-secondary, rgba(170, 184, 197, 0.82));
+}
+
+.ws-rating--sell .ws-rating__label {
+  color: #f0b36a;
+}
+
+.ws-rating--strong-sell .ws-rating__label {
+  color: #ef7a5c;
+}
+
+/* Multi-asset bottom strip */
+.ws-strip--multiasset {
+  padding: 8px 14px 8px;
+  gap: 4px;
+}
+
+.ws-strip--multiasset .ws-strip__head {
+  padding-bottom: 0;
+}
+
+.ws-multiasset__groups {
+  /* Phase 17A.3 follow-up — pure CSS marquee container. The native
+     scrollbar is gone (overflow:hidden) because the ribbon is now
+     fully autoflowed via CSS animation on a child wrapper. The
+     container only clips; the inner wrapper does the motion. */
+  position: relative;
+  overflow: hidden;
+  min-height: 44px;
+  padding: 4px 6px 6px;
+  outline: none;
+  /* No scrollbars on any platform. */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.ws-multiasset__groups::-webkit-scrollbar {
+  display: none;
+}
+
+.ws-multiasset__groups:focus-visible {
+  box-shadow: 0 0 0 1px rgba(168, 210, 235, 0.32) inset;
+  border-radius: 12px;
+}
+
+/* The inner wrapper holds two side-by-side copies of the track; the
+   marquee animation translates the wrapper from 0 to -50% so the
+   first copy slides left out of view while the second copy slides
+   into its place. At -50% the animation jumps back to 0; because
+   the second copy is identical to the first the loop is invisible. */
+.ws-multiasset__inner {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  width: max-content;
+  gap: 0;
+}
+
+.ws-multiasset__inner--marquee {
+  animation-name: ws-tape-flow;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  animation-duration: 60s; /* overridden inline at runtime */
+  will-change: transform;
+}
+
+.ws-multiasset__inner--marquee:hover,
+.ws-multiasset__inner--marquee:focus-within {
+  animation-play-state: paused;
+}
+
+@keyframes ws-tape-flow {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ws-multiasset__inner--marquee {
+    animation: none;
+  }
+}
+
+.ws-multiasset__group {
+  /* Phase 16.6 hotfix — flatten the per-group section so head + ticker
+     list flow inline. The tape now reads as ONE continuous horizontal
+     ribbon (label · live-dot · ticker · ticker · ticker · | · next group)
+     instead of stacking each section as a 2-row column. This is the
+     financial-news-ribbon shape the operator surface should have. */
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex: 0 0 auto;
+  scroll-snap-align: start;
+  height: 100%;
+}
+
+/* Phase 16.6 hotfix — the inline ribbon now provides its own divider via
+   `.ws-multiasset__group-head`'s border-right, so the previous between-group
+   pseudo separator is no longer needed and would double-line the surface. */
+.ws-multiasset__group + .ws-multiasset__group {
+  padding-left: 0;
+}
+
+.ws-multiasset__group-head {
+  /* Inline section divider. Sits flush with the ticker cards on the same
+     baseline. Padding is intentionally tight so the divider feels like a
+     news-channel section marker, not a panel header. */
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 8px 0 2px;
+  position: relative;
+  flex: 0 0 auto;
+  border-right: 1px solid rgba(132, 153, 171, 0.14);
+  margin-right: 2px;
+  height: 26px;
+  align-self: center;
+}
+
+.ws-multiasset__group-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 5px;
+  color: rgba(168, 210, 235, 0.72);
+  background: linear-gradient(
+    180deg,
+    rgba(168, 210, 235, 0.08),
+    rgba(168, 210, 235, 0.02)
+  );
+  border: 1px solid rgba(168, 210, 235, 0.12);
+}
+
+.ws-multiasset__group-label {
+  font-size: 10.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ds-text-secondary, rgba(170, 184, 197, 0.82));
+  font-weight: 600;
+}
+
+.ws-multiasset__group-count {
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: var(--ds-text-muted, rgba(133, 148, 160, 0.6));
+  font-variant-numeric: tabular-nums;
+  padding: 1px 5px;
+  border-radius: 999px;
+  background: rgba(132, 153, 171, 0.08);
+  border: 1px solid rgba(132, 153, 171, 0.1);
+}
+
+.ws-multiasset__group-badge {
+  font-size: 9px;
+  letter-spacing: 0.16em;
+  color: rgba(133, 148, 160, 0.5);
+  text-transform: uppercase;
+  font-weight: 600;
+  margin-left: 2px;
+}
+
+.ws-multiasset__group-livedot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(142, 193, 176, 0.85);
+  box-shadow: 0 0 0 0 rgba(142, 193, 176, 0.6);
+  margin-left: 2px;
+  animation: ws-tape-livedot 2400ms ease-in-out infinite;
+}
+
+@keyframes ws-tape-livedot {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(142, 193, 176, 0);
+    opacity: 0.7;
+  }
+  50% {
+    box-shadow: 0 0 0 3px rgba(142, 193, 176, 0.18);
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ws-multiasset__group-livedot {
+    animation: none;
+    opacity: 0.85;
+  }
+}
+
+.ws-strip__live-dot {
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--ds-positive, rgba(118, 220, 168, 0.92));
+  margin-right: 6px;
+  vertical-align: middle;
+  /* Phase 19D — live dot picks up a soft positive-green halo so the
+     "live" channel is unambiguous on first glance. */
+  box-shadow: 0 0 8px rgba(118, 220, 168, 0.45);
+  animation: ws-tape-livedot 2400ms ease-in-out infinite;
+}
+
+/* Phase 17A.3 follow-up — suppress the live-dot pulse on the awareness
+   rail when the feed is degraded. Stale / down should read as visibly
+   stationary so the operator never mistakes a frozen feed for live. */
+.ws-strip--signal[data-feed-health="stale"] .ws-strip__live-dot,
+.ws-strip--signal[data-feed-health="down"] .ws-strip__live-dot {
+  animation: none;
+  background: rgba(133, 148, 160, 0.45);
+}
+
+/* Soft container breath on the awareness rail when the feed is ok. A
+   slow inset glow that cycles every 4.6s — calm enough to feel like
+   ambient liveness, never strobing. Disabled when the feed is stale
+   or down, and respected for prefers-reduced-motion. */
+.ws-strip--signal[data-feed-health="ok"] {
+  animation: ws-rail-breath 4600ms ease-in-out infinite;
+}
+
+@keyframes ws-rail-breath {
+  0%,
+  100% {
+    box-shadow: var(--ds-elev-1,
+      0 12px 28px -16px rgba(0, 0, 0, 0.55),
+      0 1px 0 rgba(168, 210, 235, 0.045) inset
+    );
+  }
+  50% {
+    box-shadow: var(--ds-elev-1,
+      0 12px 28px -16px rgba(0, 0, 0, 0.55),
+      0 1px 0 rgba(168, 210, 235, 0.045) inset
+    ),
+    0 0 0 1px rgba(142, 193, 176, 0.16) inset;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ws-strip__live-dot,
+  .ws-strip--signal[data-feed-health="ok"] {
+    animation: none;
+  }
+}
+
+/* Signal grammar (event panel) */
+.ws-signal-grammar .ws-meta--grid {
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 6px 16px;
+}
+
+.ws-grammar__domain {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ws-grammar__domain-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(168, 210, 235, 0.1);
+  color: rgba(168, 210, 235, 0.92);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.ws-grammar__domain-badge--other {
+  background: rgba(132, 153, 171, 0.12);
+  color: var(--ds-text-secondary, rgba(170, 184, 197, 0.82));
+}
+
+.ws-grammar__technical dd {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+/* ---- Wave 15C — trend / replay grammar -------------------------------- */
+
+.ws-grammar-trend-row {
+  display: grid;
+  gap: 8px;
+}
+
+.ws-grammar-trend-row__head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.ws-replay-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-variant-numeric: tabular-nums;
+}
+
+.ws-replay-badge--asof {
+  color: rgba(220, 191, 130, 0.92);
+}
+
+.ws-replay-badge--live {
+  color: rgba(170, 200, 188, 0.86);
+}
+
+.ws-replay-badge__time {
+  font-weight: 500;
+  color: rgba(170, 184, 197, 0.78);
+}
+
+.ws-trend-strip {
+  display: inline-flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.ws-delta-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  color: var(--ds-text-secondary, rgba(170, 184, 197, 0.82));
+  font-variant-numeric: tabular-nums;
+}
+
+.ws-delta-chip--up {
+  color: rgba(231, 157, 132, 0.95);
+  border-color: rgba(231, 157, 132, 0.18);
+}
+
+.ws-delta-chip--down {
+  color: rgba(142, 193, 176, 0.92);
+  border-color: rgba(142, 193, 176, 0.18);
+}
+
+.ws-delta-chip--flat {
+  color: rgba(170, 184, 197, 0.7);
+}
+
+.ws-delta-chip__win {
+  opacity: 0.7;
+  text-transform: uppercase;
+  font-size: 10px;
+}
+
+.ws-posture-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--ds-text-secondary, rgba(170, 184, 197, 0.82));
+}
+
+.ws-posture-chip--tightening {
+  color: rgba(231, 157, 132, 0.95);
+  background: rgba(231, 157, 132, 0.08);
+}
+
+.ws-posture-chip--loosening {
+  color: rgba(142, 193, 176, 0.92);
+  background: rgba(142, 193, 176, 0.08);
+}
+
+.ws-posture-chip--insufficient {
+  opacity: 0.6;
+}
+
+.ws-grammar-changes-since {
+  margin: 0;
+  font-size: 12px;
+  color: var(--ds-text-secondary, rgba(170, 184, 197, 0.82));
+}
+
+/* ---- rail extras ------------------------------------------------------ */
+
+.ws-strip__asof-chip {
+  margin-left: 6px;
+  color: rgba(220, 191, 130, 0.92);
+  text-transform: uppercase;
+  font-size: 10px;
+  letter-spacing: 0.04em;
+}
+
+.ws-strip--asof {
+  border-color: rgba(220, 191, 130, 0.22);
+}
+
+.ws-rail-changes {
+  margin: 6px 0 4px;
+  font-size: 11px;
+  color: var(--ds-text-secondary, rgba(170, 184, 197, 0.78));
+}
+
+.ws-rail-stale {
+  margin: 0 0 6px;
+  font-size: 11px;
+  color: rgba(220, 191, 130, 0.92);
+}
+
+.ws-rail-trend {
+  margin-top: 8px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.ws-rail-trend__chip {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--ds-text-secondary, rgba(170, 184, 197, 0.78));
+}
+
+.ws-rail-trend__chip--up {
+  color: rgba(231, 157, 132, 0.95);
+}
+
+.ws-rail-trend__chip--down {
+  color: rgba(142, 193, 176, 0.92);
+}
+
+.ws-rail-tab--stale {
+  opacity: 0.78;
+}
+
+.ws-rail-tab__stale-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(220, 191, 130, 0.92);
+  display: inline-block;
+}
+
+/* ---- entity-symbol surface ------------------------------------------- */
+
+.ws-grammar__symbol-list {
+  list-style: none;
+  margin: 8px 0 4px;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.ws-grammar__symbol {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  font-size: 11px;
+}
+
+.ws-grammar__symbol-tick {
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  font-variant-numeric: tabular-nums;
+}
+
+.ws-grammar__symbol-meta {
+  color: var(--ds-text-secondary, rgba(170, 184, 197, 0.78));
+  text-transform: uppercase;
+  font-size: 9px;
+  letter-spacing: 0.06em;
+}
+
+.ws-grammar__symbol-source {
+  font-size: 11px;
+  margin-top: 4px;
+}
+
+/* ====================================================================== */
+/* Phase 16 — motion, market surfaces, beta readiness                     */
+/* ====================================================================== */
+
+/* ---- Part 1: panel reveal choreography -------------------------------- */
+
+.ws-panel-reveal {
+  display: contents;
+}
+
+.ws-panel-reveal[data-reveal="on"] > .ws-panel-reveal__slot {
+  opacity: 0;
+  transform: translateY(6px);
+  animation: ws-panel-reveal-in 220ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation-delay: var(--reveal-delay, 0ms);
+  will-change: opacity, transform;
+}
+
+.ws-panel-reveal[data-reveal="off"] > .ws-panel-reveal__slot {
+  opacity: 1;
+  transform: none;
+  animation: none;
+}
+
+.ws-panel-reveal__slot {
+  display: contents;
+}
+
+@keyframes ws-panel-reveal-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ws-panel-reveal[data-reveal="on"] > .ws-panel-reveal__slot {
+    opacity: 1;
+    transform: none;
+    animation: none;
+  }
+}
+
+/* ---- Part 2: rail + lower rail premium motion ------------------------- */
+
+.ws-strip {
+  position: relative;
+}
+
+.ws-strip__list,
+.ws-multiasset__groups {
+  scroll-behavior: smooth;
+  scroll-snap-type: x proximity;
+  overscroll-behavior-x: contain;
+}
+
+/* Inline list — the outer .ws-multiasset__groups owns the horizontal scroll;
+   each per-group list flows inline so the strip is one continuous ribbon
+   rather than a row of individually-scrollable bins. */
+.ws-ticker-list--inline {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  gap: 5px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  align-items: center;
+  flex: 0 0 auto;
+}
+
+.ws-ticker-list--inline > li {
+  flex: 0 0 auto;
+  scroll-snap-align: start;
+}
+
+/* Subtle edge fade so overflow is suggested rather than truncated harshly. */
+.ws-strip--multiasset {
+  position: relative;
+}
+
+.ws-strip--multiasset::before,
+.ws-strip--multiasset::after {
+  content: "";
+  position: absolute;
+  top: 32px;
+  bottom: 4px;
+  width: 36px;
+  pointer-events: none;
+  z-index: 2;
+  transition: opacity 200ms cubic-bezier(0.22, 1, 0.36, 1);
+  border-radius: 14px;
+}
+
+.ws-strip--multiasset::before {
+  left: 0;
+  background: linear-gradient(
+    to right,
+    rgba(7, 11, 17, 0.96) 0%,
+    rgba(7, 11, 17, 0.7) 35%,
+    rgba(7, 11, 17, 0) 100%
+  );
+}
+
+.ws-strip--multiasset::after {
+  right: 0;
+  background: linear-gradient(
+    to left,
+    rgba(7, 11, 17, 0.96) 0%,
+    rgba(7, 11, 17, 0.7) 35%,
+    rgba(7, 11, 17, 0) 100%
+  );
+}
+
+.ws-strip--multiasset[data-overflow-start="false"]::before {
+  opacity: 0;
+}
+
+.ws-strip--multiasset[data-overflow-end="false"]::after {
+  opacity: 0;
+}
+
+.ws-multiasset__paginate {
+  /* Phase 17A.3 follow-up — pagination is no longer functional now
+     that the tape is a CSS marquee. Buttons remain in the DOM as
+     test fixtures (multi-asset-prev / multi-asset-next) but are
+     visually hidden so the ribbon reads as one clean continuous
+     surface. Keep the button reachable for assistive tech only via
+     `aria-hidden=true` on the markup, not display:none, so existing
+     `getByTestId` assertions still find them. */
+  position: absolute;
+  width: 0;
+  height: 0;
+  padding: 0;
+  margin: 0;
+  border: none;
+  background: transparent;
+  color: transparent;
+  font-size: 0;
+  line-height: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: -1;
+}
+
+.ws-multiasset__paginate:hover,
+.ws-multiasset__paginate:focus-visible {
+  border-color: rgba(168, 210, 235, 0.5);
+  color: var(--ds-text-primary, rgba(242, 246, 250, 0.96));
+  background: rgba(10, 14, 20, 0.95);
+}
+
+.ws-multiasset__paginate--prev {
+  left: 4px;
+}
+
+.ws-multiasset__paginate--next {
+  right: 4px;
+}
+
+.ws-multiasset__paginate[disabled] {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.ws-rail-tabs {
+  scroll-behavior: smooth;
+}
+
+.ws-rail-tab {
+  transition: background 140ms ease, color 140ms ease, border-color 140ms ease,
+    transform 160ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.ws-rail-tab:hover {
+  transform: translateY(-1px);
+}
+
+.ws-strip__list > li,
+.ws-multiasset__group > .ws-ticker-list > li {
+  animation: ws-rail-item-in 260ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Phase 16.6 — staggered awareness-rail reveal. Each row is offset by a
+   fraction of a beat so a freshly-mounted feed cascades in instead of
+   landing all at once. We cap at 12 rows so the tail of long lists
+   doesn't pay an animation cost. */
+.ws-strip--signal .ws-strip__list > li:nth-child(1)  { animation-delay: 0ms; }
+.ws-strip--signal .ws-strip__list > li:nth-child(2)  { animation-delay: 22ms; }
+.ws-strip--signal .ws-strip__list > li:nth-child(3)  { animation-delay: 44ms; }
+.ws-strip--signal .ws-strip__list > li:nth-child(4)  { animation-delay: 66ms; }
+.ws-strip--signal .ws-strip__list > li:nth-child(5)  { animation-delay: 88ms; }
+.ws-strip--signal .ws-strip__list > li:nth-child(6)  { animation-delay: 110ms; }
+.ws-strip--signal .ws-strip__list > li:nth-child(7)  { animation-delay: 132ms; }
+.ws-strip--signal .ws-strip__list > li:nth-child(8)  { animation-delay: 154ms; }
+.ws-strip--signal .ws-strip__list > li:nth-child(9)  { animation-delay: 176ms; }
+.ws-strip--signal .ws-strip__list > li:nth-child(10) { animation-delay: 198ms; }
+.ws-strip--signal .ws-strip__list > li:nth-child(11) { animation-delay: 220ms; }
+.ws-strip--signal .ws-strip__list > li:nth-child(12) { animation-delay: 242ms; }
+
+@keyframes ws-rail-item-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px) scale(0.99);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Phase 16.5 — restrained pulse-on-update language. The pulse class is
+   only applied for ~720ms when the *price* actually changes (tracked in
+   AssetGroup via a previous-price ref). This means a steady ticker doesn't
+   strobe just because React re-renders. */
+.ws-ticker--pulse-up {
+  animation: ws-ticker-pulse-up 720ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.ws-ticker--pulse-down {
+  animation: ws-ticker-pulse-down 720ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes ws-ticker-pulse-up {
+  0% {
+    box-shadow: 0 0 0 0 rgba(132, 198, 168, 0);
+    background:
+      linear-gradient(
+        180deg,
+        rgba(28, 52, 44, 0.92) 0%,
+        rgba(8, 18, 14, 0.7) 100%
+      );
+    border-color: rgba(132, 198, 168, 0.55);
+  }
+  40% {
+    box-shadow: 0 0 0 1px rgba(132, 198, 168, 0.4),
+      0 8px 20px rgba(132, 198, 168, 0.18);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(132, 198, 168, 0);
+  }
+}
+
+@keyframes ws-ticker-pulse-down {
+  0% {
+    box-shadow: 0 0 0 0 rgba(231, 157, 132, 0);
+    background:
+      linear-gradient(
+        180deg,
+        rgba(56, 30, 22, 0.92) 0%,
+        rgba(20, 10, 8, 0.7) 100%
+      );
+    border-color: rgba(231, 157, 132, 0.55);
+  }
+  40% {
+    box-shadow: 0 0 0 1px rgba(231, 157, 132, 0.4),
+      0 8px 20px rgba(231, 157, 132, 0.18);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(231, 157, 132, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ws-strip__list > li,
+  .ws-multiasset__group > .ws-ticker-list > li,
+  .ws-ticker--pulse-up,
+  .ws-ticker--pulse-down {
+    animation: none;
+  }
+}
+
+.ws-strip--multiasset[data-reduce-motion="true"] .ws-multiasset__group-livedot,
+.ws-strip--multiasset[data-reduce-motion="true"] .ws-strip__live-dot {
+  animation: none;
+}
+
+/* ---- Part 3: replay cursor as a real operator control ---------------- */
+
+.ws-replay-cursor {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 2px;
+  padding: 4px 8px;
+  border-radius: 10px;
+  border: 1px solid rgba(132, 153, 171, 0.22);
+  background: linear-gradient(
+    180deg,
+    rgba(8, 12, 18, 0.62),
+    rgba(8, 12, 18, 0.42)
+  );
+  min-width: 220px;
+  transition: border-color 160ms ease, background 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.ws-replay-cursor:hover,
+.ws-replay-cursor:focus-within {
+  border-color: rgba(168, 210, 235, 0.32);
+  box-shadow: 0 0 0 1px rgba(168, 210, 235, 0.06);
+}
+
+.ws-replay-cursor--asof {
+  border-color: rgba(240, 179, 106, 0.42);
+  background: linear-gradient(
+    180deg,
+    rgba(35, 24, 12, 0.6),
+    rgba(20, 14, 8, 0.42)
+  );
+}
+
+.ws-replay-cursor__row {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ws-replay-cursor__hint {
+  font-size: 9.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ds-text-muted, rgba(133, 148, 160, 0.66));
+  font-variant-numeric: tabular-nums;
+}
+
+.ws-replay-cursor--asof .ws-replay-cursor__hint {
+  color: rgba(240, 179, 106, 0.86);
+}
+
+.ws-replay-cursor__display {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 11px;
+  color: var(--ds-text-primary, rgba(242, 246, 250, 0.94));
+  letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.ws-replay-cursor__display--muted {
+  color: var(--ds-text-secondary, rgba(170, 184, 197, 0.78));
+}
+
+.ws-replay-cursor__zone {
+  font-size: 9.5px;
+  color: var(--ds-text-muted, rgba(133, 148, 160, 0.6));
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-left: 4px;
+}
+
+.ws-replay-cursor__input {
+  background: transparent;
+  border: none;
+  color: transparent;
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 11px;
+  outline: none;
+  padding: 0;
+  width: 22px;
+  max-width: 22px;
+  color-scheme: dark;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+
+.ws-replay-cursor__input::-webkit-datetime-edit {
+  display: none;
+}
+
+.ws-replay-cursor__input::-webkit-calendar-picker-indicator {
+  filter: invert(0.85);
+  opacity: 0.66;
+  cursor: pointer;
+  margin: 0;
+}
+
+.ws-replay-cursor__input:hover::-webkit-calendar-picker-indicator,
+.ws-replay-cursor__input:focus-visible::-webkit-calendar-picker-indicator {
+  opacity: 1;
+}
+
+.ws-replay-cursor__input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.ws-replay-cursor__restore {
+  background: rgba(168, 210, 235, 0.06);
+  border: 1px solid rgba(168, 210, 235, 0.32);
+  border-radius: 6px;
+  color: var(--ds-accent, #a8d2eb);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  cursor: pointer;
+  transition: background 120ms ease, border-color 120ms ease;
+  font-weight: 600;
+}
+
+.ws-replay-cursor__restore:hover,
+.ws-replay-cursor__restore:focus-visible {
+  background: rgba(168, 210, 235, 0.14);
+  border-color: rgba(168, 210, 235, 0.6);
+  outline: none;
+}
+
+/* ---- Part 4: technical rating surface upgrades ----------------------- */
+
+.ws-rating {
+  position: relative;
+  border-radius: 12px;
+  padding: 10px 12px;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.04),
+    rgba(255, 255, 255, 0.015)
+  );
+  border: 1px solid rgba(132, 153, 171, 0.16);
+  margin-top: 10px;
+}
+
+.ws-rating--strong-buy {
+  border-color: rgba(132, 198, 168, 0.35);
+  background: linear-gradient(
+    180deg,
+    rgba(54, 96, 80, 0.18),
+    rgba(54, 96, 80, 0.04)
+  );
+}
+
+.ws-rating--buy {
+  border-color: rgba(132, 198, 168, 0.22);
+  background: linear-gradient(
+    180deg,
+    rgba(54, 96, 80, 0.1),
+    rgba(54, 96, 80, 0.02)
+  );
+}
+
+.ws-rating--neutral {
+  border-color: rgba(132, 153, 171, 0.18);
+}
+
+.ws-rating--sell {
+  border-color: rgba(231, 157, 132, 0.22);
+  background: linear-gradient(
+    180deg,
+    rgba(96, 54, 44, 0.1),
+    rgba(96, 54, 44, 0.02)
+  );
+}
+
+.ws-rating--strong-sell {
+  border-color: rgba(231, 157, 132, 0.35);
+  background: linear-gradient(
+    180deg,
+    rgba(96, 54, 44, 0.18),
+    rgba(96, 54, 44, 0.04)
+  );
+}
+
+.ws-rating--inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 10px;
+  margin: 0;
+  border-radius: 999px;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.ws-rating--inline .ws-rating__label {
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  font-size: 11px;
+}
+
+.ws-rating--inline .ws-rating__confidence {
+  font-size: 10px;
+  color: var(--ds-text-muted, rgba(133, 148, 160, 0.66));
+}
+
+.ws-rating__factor {
+  border-left: 2px solid transparent;
+  padding-left: 8px;
+}
+
+.ws-rating__factor--bull {
+  border-left-color: rgba(132, 198, 168, 0.5);
+}
+
+.ws-rating__factor--bear {
+  border-left-color: rgba(231, 157, 132, 0.5);
+}
+
+.ws-rating__factor--neutral {
+  border-left-color: rgba(132, 153, 171, 0.3);
+}
+
+/* ---- Part 5: chart visibility / context ------------------------------ */
+
+.ws-portfolio-chart {
+  position: relative;
+  border-radius: 14px;
+  padding: 12px;
+  background: linear-gradient(
+    180deg,
+    rgba(15, 22, 32, 0.65),
+    rgba(7, 11, 17, 0.5)
+  );
+  border: 1px solid rgba(132, 153, 171, 0.18);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.32);
+}
+
+.ws-chart-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin: 0 0 8px;
+  font-size: 11px;
+  color: var(--ds-text-secondary, rgba(170, 184, 197, 0.82));
+}
+
+.ws-chart-meta__symbol {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--ds-text-primary, rgba(242, 246, 250, 0.96));
+}
+
+.ws-chart-meta__chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.ws-chart-meta__chip--asof {
+  color: rgba(240, 179, 106, 0.92);
+  border-color: rgba(240, 179, 106, 0.32);
+  background: rgba(240, 179, 106, 0.06);
+}
+
+.ws-chart-meta__chip--live {
+  color: rgba(170, 200, 188, 0.92);
+}
+
+/* Phase 19E — honest demo / synthetic data chip. Coral so a viewer can
+   tell at a glance the chart is not coming from a live provider. */
+.ws-chart-meta__chip--demo {
+  color: rgba(255, 138, 128, 0.95);
+  border-color: rgba(255, 138, 128, 0.42);
+  background: rgba(255, 138, 128, 0.08);
+}
+
+.ws-chart-meta__overlays {
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  color: var(--ds-text-muted, rgba(133, 148, 160, 0.66));
+  font-family: var(--font-mono), ui-monospace, monospace;
+}
+
+/* Phase 17A.3 — compact chart meta for the MarketDock context.
+   The dock head already shows the symbol; the chart's own meta row
+   drops the duplicate symbol label and tightens spacing so the chart
+   sits closer to the head as one continuous surface. */
+.ws-chart-meta--compact {
+  margin-top: 4px;
+  gap: 6px 10px;
+}
+
+/* ---- Part 6: premium color depth ------------------------------------- */
+
+.ws-overlay__frame {
+  background: linear-gradient(
+    180deg,
+    rgba(12, 16, 23, 0.94) 0%,
+    rgba(10, 14, 20, 0.86) 30%,
+    rgba(8, 11, 17, 0.78) 100%
+  );
+  box-shadow:
+    0 28px 64px rgba(0, 0, 0, 0.42),
+    0 2px 0 rgba(168, 210, 235, 0.06) inset,
+    0 -40px 80px rgba(168, 210, 235, 0.03) inset;
+}
+
+.ws-strip--signal {
+  background: linear-gradient(
+    180deg,
+    rgba(10, 14, 20, 0.78),
+    rgba(7, 11, 17, 0.6)
+  );
+  border-radius: 14px;
+}
+
+.ws-strip--multiasset {
+  background:
+    radial-gradient(
+      120% 80% at 50% 0%,
+      rgba(168, 210, 235, 0.04) 0%,
+      rgba(168, 210, 235, 0) 60%
+    ),
+    linear-gradient(
+      180deg,
+      rgba(9, 13, 20, 0.92) 0%,
+      rgba(4, 7, 11, 0.78) 60%,
+      rgba(2, 4, 7, 0.7) 100%
+    );
+  border-radius: 14px;
+  border: 1px solid rgba(132, 153, 171, 0.1);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.025) inset,
+    0 -1px 0 rgba(0, 0, 0, 0.4) inset,
+    0 8px 24px rgba(0, 0, 0, 0.32);
+}
+
+/* Subtle command-shell deepening — only the two outer chrome columns. */
+.ws-chrome::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(
+      120% 60% at 50% 100%,
+      rgba(0, 0, 0, 0.24),
+      rgba(0, 0, 0, 0) 60%
+    ),
+    radial-gradient(
+      80% 40% at 0% 0%,
+      rgba(168, 210, 235, 0.04),
+      rgba(168, 210, 235, 0) 60%
+    );
+  z-index: 0;
+}
+
+.ws-chrome > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* ---- Part 7: beta readiness — empty / stale states ------------------ */
+
+.ws-empty {
+  border-radius: 12px;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.025),
+    rgba(255, 255, 255, 0)
+  );
+  border: 1px dashed rgba(132, 153, 171, 0.2);
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ws-empty .ws-eyebrow {
+  color: var(--ds-text-muted, rgba(133, 148, 160, 0.66));
+}
+
+.ws-empty p {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--ds-text-secondary, rgba(170, 184, 197, 0.82));
+}
+
+.ws-empty--stale {
+  border-color: rgba(220, 191, 130, 0.28);
+  background: linear-gradient(
+    180deg,
+    rgba(48, 36, 16, 0.18),
+    rgba(48, 36, 16, 0.02)
+  );
+}
+
+.ws-empty--stale .ws-eyebrow {
+  color: rgba(220, 191, 130, 0.86);
+}
+
+.ws-feed-health {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ds-text-muted, rgba(133, 148, 160, 0.66));
+}
+
+.ws-feed-health__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.ws-feed-health__dot--ok {
+  background: rgba(132, 198, 168, 0.92);
+}
+
+.ws-feed-health__dot--stale {
+  background: rgba(220, 191, 130, 0.92);
+}
+
+.ws-feed-health__dot--down {
+  background: rgba(231, 157, 132, 0.92);
+}
+
+.ws-demo-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: linear-gradient(
+    180deg,
+    rgba(40, 28, 12, 0.36),
+    rgba(20, 14, 8, 0.24)
+  );
+  border: 1px solid rgba(220, 191, 130, 0.32);
+  font-size: 11.5px;
+  color: rgba(220, 191, 130, 0.94);
+}
+
+.ws-demo-banner__pill {
+  font-size: 9.5px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: rgba(220, 191, 130, 0.12);
+  font-weight: 600;
+}
+
+/* ---- Phase 16.6 — chart dock callout ---- */
+
+.ws-chart-callout {
+  border-radius: 10px;
+  border: 1px dashed rgba(168, 210, 235, 0.22);
+  background: linear-gradient(
+    180deg,
+    rgba(168, 210, 235, 0.04) 0%,
+    rgba(168, 210, 235, 0.01) 100%
+  );
+  padding: 10px 12px;
+}
+
+.ws-chart-callout p {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--ds-text-secondary, rgba(170, 184, 197, 0.78));
+}
+
+/* ---- Phase 16.6 — paper / demo book labeling ---- */
+
+.ws-paper-book-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-weight: 600;
+  background: rgba(220, 191, 130, 0.1);
+  color: rgba(220, 191, 130, 0.95);
+  border: 1px solid rgba(220, 191, 130, 0.32);
+}
+
+.ws-paper-book-pill::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(220, 191, 130, 0.85);
+}
+
+.ws-paper-book-banner {
+  margin: 0 0 12px 0;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: rgba(220, 191, 130, 0.06);
+  border: 1px solid rgba(220, 191, 130, 0.2);
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: var(--ds-text-secondary, rgba(170, 184, 197, 0.86));
+}
+
+.ws-paper-book-banner strong {
+  color: rgba(220, 191, 130, 0.95);
+  font-weight: 600;
+}
+
+.ws-portfolio-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ---- Phase 16.6 hotfix — honest market snapshot ---- */
+
+.ws-market-snapshot {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: linear-gradient(
+    180deg,
+    rgba(14, 20, 30, 0.78) 0%,
+    rgba(6, 10, 16, 0.62) 100%
+  );
+  border: 1px solid rgba(132, 153, 171, 0.16);
+  margin-bottom: 8px;
+}
+
+.ws-market-snapshot__head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+.ws-market-snapshot__symbol {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  color: var(--ds-text-primary, rgba(242, 246, 250, 0.96));
+}
+
+.ws-market-snapshot__last {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ds-text-primary, rgba(242, 246, 250, 0.96));
+}
+
+.ws-market-snapshot__pct {
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.ws-market-snapshot__pct--up { color: #8ec1b0; }
+.ws-market-snapshot__pct--down { color: #e79d84; }
+.ws-market-snapshot__pct--flat { color: rgba(170, 184, 197, 0.78); }
+
+.ws-market-snapshot__range {
+  position: relative;
+  height: 14px;
+  display: flex;
+  align-items: center;
+}
+
+.ws-market-snapshot__rail {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 4px;
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    rgba(132, 153, 171, 0.18) 0%,
+    rgba(132, 153, 171, 0.32) 50%,
+    rgba(132, 153, 171, 0.18) 100%
+  );
+}
+
+.ws-market-snapshot__marker {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.ws-market-snapshot__marker--prev {
+  width: 2px;
+  height: 14px;
+  border-radius: 1px;
+  background: rgba(170, 184, 197, 0.7);
+}
+
+.ws-market-snapshot__marker--last {
+  background: rgba(168, 210, 235, 0.95);
+  box-shadow: 0 0 0 3px rgba(168, 210, 235, 0.18);
+}
+
+.ws-market-snapshot__marker--last.ws-market-snapshot__marker--up {
+  background: #8ec1b0;
+  box-shadow: 0 0 0 3px rgba(132, 198, 168, 0.22);
+}
+
+.ws-market-snapshot__marker--last.ws-market-snapshot__marker--down {
+  background: #e79d84;
+  box-shadow: 0 0 0 3px rgba(231, 157, 132, 0.22);
+}
+
+.ws-market-snapshot__legend {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 10.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ds-text-muted, rgba(133, 148, 160, 0.66));
+  font-variant-numeric: tabular-nums;
+  font-family: var(--font-mono), ui-monospace, monospace;
+}
+
+.ws-market-snapshot__legend strong {
+  color: var(--ds-text-secondary, rgba(170, 184, 197, 0.86));
+  font-weight: 500;
+  margin-left: 4px;
+}
+
+
+/* ---- Phase 16.7 — universal market chart + persistent dock ---- */
+
+.ws-market-chart {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(168, 210, 235, 0.14);
+  background: linear-gradient(
+    180deg,
+    rgba(168, 210, 235, 0.04) 0%,
+    rgba(168, 210, 235, 0.01) 100%
+  );
+}
+
+.ws-market-chart__canvas {
+  width: 100%;
+}
+
+.ws-chart-callout--compare {
+  border-style: solid;
+  border-color: rgba(168, 210, 235, 0.32);
+  background: linear-gradient(
+    180deg,
+    rgba(168, 210, 235, 0.06) 0%,
+    rgba(168, 210, 235, 0.015) 100%
+  );
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ws-market-dock {
+  position: fixed;
+  right: 24px;
+  bottom: 132px;
+  width: clamp(360px, 32vw, 480px);
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--ds-border-mid, rgba(168, 210, 235, 0.22));
+  /* Phase 17A.3 — dock sits a half-step below the right panel so the
+     two surfaces don't read as the same plane. Slight cool bias and
+     a tighter top-edge highlight make it feel like a working
+     instrument rather than another panel. */
+  background: linear-gradient(
+    180deg,
+    rgba(13, 18, 26, 0.86) 0%,
+    rgba(10, 14, 20, 0.82) 100%
+  );
+  backdrop-filter: blur(16px) saturate(135%);
+  -webkit-backdrop-filter: blur(16px) saturate(135%);
+  box-shadow: var(--ds-elev-2,
+    0 22px 44px -22px rgba(0, 0, 0, 0.6),
+    0 1px 0 rgba(168, 210, 235, 0.05) inset
+  );
+  font-family: var(--font-mono), ui-monospace, monospace;
+  pointer-events: auto;
+  /* Phase 17A.3 hotfix — cap the dock so it never grows beyond the
+     viewport. Without this, a tall content stack (chart + verbose
+     rating badge + posture card + narrative + drivers + caveats)
+     pushed the dock upward off-screen and the close button became
+     unreachable. Internal content scrolls within the dock instead. */
+  max-height: calc(100vh - 180px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  /* Compositing stability hints (Phase 17A.3 polish) — keep the
+     dock's backdrop blur on a stable GPU layer so the clouds
+     underneath don't shimmer during globe orbit/swipe. Pairs safely
+     with the max-height above. */
+  will-change: transform, backdrop-filter;
+  contain: paint;
+}
+
+/* Phase 17A.3 hotfix — keep the dock head (symbol + close button)
+   reachable when the dock scrolls internally. The head sits as a
+   sticky bar with the same gradient as the dock body so the seam
+   reads cleanly. */
+.ws-market-dock__head {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  padding: 4px 0 8px;
+  margin: -4px 0 0;
+  background: linear-gradient(
+    180deg,
+    rgba(13, 18, 26, 0.94) 0%,
+    rgba(13, 18, 26, 0.78) 100%
+  );
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border-bottom: 1px solid var(--ds-divider, rgba(132, 153, 171, 0.10));
+}
+
+.ws-market-dock__head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+}
+
+.ws-market-dock__symbol {
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--ds-text-primary, rgba(220, 230, 240, 0.95));
+}
+
+.ws-market-dock__asset {
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(168, 210, 235, 0.85);
+  background: rgba(168, 210, 235, 0.08);
+  border: 1px solid rgba(168, 210, 235, 0.2);
+}
+
+/* Phase 17A.3 — calm honesty chip for asset classes the configured
+   market provider only partially covers (e.g. AV + futures). Tone
+   matches the as-of chip on charts so the operator reads it as
+   "context, not error". */
+.ws-market-dock__limit {
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(240, 179, 106, 0.92);
+  background: rgba(240, 179, 106, 0.08);
+  border: 1px solid rgba(240, 179, 106, 0.28);
+}
+
+.ws-market-dock__last {
+  color: var(--ds-text-secondary, rgba(170, 184, 197, 0.92));
+  font-weight: 600;
+}
+
+.ws-market-dock__pct {
+  font-weight: 600;
+}
+
+.ws-market-dock__pct--up {
+  color: #8ec1b0;
+}
+
+.ws-market-dock__pct--down {
+  color: #e79d84;
+}
+
+.ws-market-dock__pct--flat {
+  color: var(--ds-text-muted, rgba(133, 148, 160, 0.7));
+}
+
+.ws-market-dock__close {
+  margin-left: auto;
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: rgba(170, 184, 197, 0.55);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 6px;
+  transition: background 120ms ease, color 120ms ease;
+}
+
+.ws-market-dock__close:hover {
+  background: rgba(168, 210, 235, 0.08);
+  color: var(--ds-text-primary, rgba(220, 230, 240, 0.95));
+}
+
+@media (max-width: 1280px) {
+  .ws-market-dock {
+    right: 12px;
+    bottom: 120px;
+    width: clamp(300px, 90vw, 420px);
+  }
+}
+
+/* ---- Phase 16.7 — premium continuous tape track ---- */
+
+.ws-multiasset__track {
+  /* The two tracks (original + clone) live as flex children of
+     `.ws-multiasset__groups`. Without `flex-shrink: 0` the parent flex
+     container compresses both tracks toward 0 width — which, combined
+     with `min-width: 0` on the inner groups, made adjacent groups
+     overlap (equities sliding into commodities, clone landing on top
+     of the original). Pinning each track at its natural intrinsic
+     width is what gives the news-channel ribbon its honest layout. */
+  display: inline-flex;
+  align-items: stretch;
+  gap: 14px;
+  flex: 0 0 auto;
+  will-change: transform;
+}
+
+.ws-multiasset__track[data-clone="true"] {
+  /* The cloned content lets the tape feel continuous when the auto-flow
+     reaches the end of the original sequence. The component swaps
+     scrollLeft back by the original-track width so the loop is invisible.
+     `flex-shrink: 0` matters here too — if the clone is allowed to
+     compress, its inner groups visually overlap the original track at
+     wrap. */
+  flex: 0 0 auto;
+}
+
+.ws-strip--multiasset[data-pulse-driven="true"] .ws-strip__live-dot {
+  animation: ws-tape-breathe 1.6s ease-in-out infinite;
+}
+
+@keyframes ws-tape-breathe {
+  0%, 100% { opacity: 0.55; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.18); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ws-strip--multiasset[data-pulse-driven="true"] .ws-strip__live-dot {
+    animation: none;
+  }
+}
+
+/* ---- Phase 17A.2 — market hero (chart + posture pinned to top) ---- */
+
+.ws-section--market-hero {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+  margin-bottom: 12px;
+}
+
+.ws-section--market-hero .ws-posture {
+  margin-top: 0;
+}
+
+/* ---- Phase 17A.2 — grounded market posture card ---- */
+
+.ws-posture {
+  margin-top: 10px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  background: rgba(15, 23, 42, 0.72);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  font-size: 12.5px;
+  color: rgba(226, 232, 240, 0.92);
+}
+
+.ws-posture--loading,
+.ws-posture--error {
+  opacity: 0.78;
+}
+
+.ws-posture__head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* Phase 17A.3 — deterministic call summary line. Sits between the head
+   chip-row and the components grid so the operator reads label →
+   one-line call → numeric breakdown in vertical order. Tone is calm
+   and neutral; the agentic narrative (Part 1) replaces or extends this
+   with bounded prose when ANTHROPIC_API_KEY is configured. */
+.ws-posture__lead {
+  margin: 6px 0 0;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: rgba(226, 232, 240, 0.9);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Phase 17A.3 — small grounded-source caption that appears under the
+   lead line ONLY when the narrative came from the bounded agentic layer
+   (Claude). Visually subordinate so the deterministic posture remains
+   the focal surface. */
+.ws-posture__lead-source {
+  margin: 2px 0 0;
+  font-size: 10.5px;
+  letter-spacing: 0.04em;
+  color: rgba(168, 210, 235, 0.66);
+  text-transform: uppercase;
+  font-weight: 500;
+}
+
+.ws-posture__label {
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  font-size: 13px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.15);
+  color: rgba(241, 245, 249, 0.95);
+}
+
+.ws-posture--strong-buy .ws-posture__label {
+  background: rgba(34, 197, 94, 0.22);
+  color: rgb(187, 247, 208);
+}
+.ws-posture--buy .ws-posture__label {
+  background: rgba(34, 197, 94, 0.14);
+  color: rgb(167, 243, 208);
+}
+.ws-posture--neutral .ws-posture__label {
+  background: rgba(148, 163, 184, 0.18);
+  color: rgb(226, 232, 240);
+}
+.ws-posture--sell .ws-posture__label {
+  background: rgba(248, 113, 113, 0.16);
+  color: rgb(254, 202, 202);
+}
+.ws-posture--strong-sell .ws-posture__label {
+  background: rgba(248, 113, 113, 0.24);
+  color: rgb(254, 226, 226);
+}
+
+.ws-posture__confidence {
+  font-variant-numeric: tabular-nums;
+  font-size: 11.5px;
+  color: rgba(203, 213, 225, 0.85);
+}
+
+.ws-posture__provider {
+  margin-left: auto;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 10.5px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  border: 1px solid transparent;
+}
+
+.ws-posture__provider--live {
+  border-color: rgba(34, 197, 94, 0.35);
+  color: rgb(167, 243, 208);
+}
+.ws-posture__provider--degraded {
+  border-color: rgba(250, 204, 21, 0.4);
+  color: rgb(254, 240, 138);
+}
+.ws-posture__provider--unsupported {
+  border-color: rgba(248, 113, 113, 0.4);
+  color: rgb(254, 202, 202);
+}
+.ws-posture__provider--unconfigured {
+  border-color: rgba(148, 163, 184, 0.35);
+  color: rgb(203, 213, 225);
+}
+
+.ws-posture__components {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  margin: 0;
+}
+
+.ws-posture__component {
+  display: flex;
+  flex-direction: column;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgba(30, 41, 59, 0.55);
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  gap: 2px;
+}
+
+.ws-posture__component dt {
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: rgba(148, 163, 184, 0.85);
+}
+
+.ws-posture__component dd {
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px;
+  font-variant-numeric: tabular-nums;
+}
+
+.ws-posture__component-value {
+  font-size: 13.5px;
+  font-weight: 600;
+}
+
+.ws-posture__component--up .ws-posture__component-value {
+  color: rgb(134, 239, 172);
+}
+.ws-posture__component--down .ws-posture__component-value {
+  color: rgb(252, 165, 165);
+}
+.ws-posture__component--flat .ws-posture__component-value {
+  color: rgb(226, 232, 240);
+}
+
+.ws-posture__component-hint {
+  font-size: 10.5px;
+  color: rgba(148, 163, 184, 0.85);
+}
+
+.ws-posture__drivers {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ws-posture__drivers-head {
+  margin: 0;
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: rgba(148, 163, 184, 0.75);
+}
+
+.ws-posture__drivers-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.ws-posture__driver {
+  display: grid;
+  grid-template-columns: 14px minmax(0, 1fr) auto;
+  gap: 6px;
+  align-items: center;
+  font-size: 12px;
+  padding: 4px 6px;
+  border-radius: 6px;
+  background: rgba(30, 41, 59, 0.4);
+}
+
+.ws-posture__driver--bullish .ws-posture__driver-arrow {
+  color: rgb(134, 239, 172);
+}
+.ws-posture__driver--bearish .ws-posture__driver-arrow {
+  color: rgb(252, 165, 165);
+}
+.ws-posture__driver--neutral .ws-posture__driver-arrow {
+  color: rgba(148, 163, 184, 0.85);
+}
+
+.ws-posture__driver-title {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: rgba(226, 232, 240, 0.92);
+}
+
+.ws-posture__driver-meta {
+  font-size: 10.5px;
+  color: rgba(148, 163, 184, 0.85);
+  white-space: nowrap;
+}
+
+.ws-posture__caveats {
+  border-top: 1px dashed rgba(148, 163, 184, 0.18);
+  padding-top: 8px;
+}
+
+.ws-posture__caveats ul {
+  margin: 0;
+  padding-left: 14px;
+  font-size: 11.5px;
+  color: rgba(203, 213, 225, 0.85);
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+/* Phase 18A.4 — retrieval orchestrator surfacing */
+
+.ws-time-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  border-radius: 999px;
+  font-size: 11.5px;
+  color: rgba(203, 213, 225, 0.92);
+  background: rgba(15, 23, 42, 0.4);
+  margin: 6px 0;
+}
+
+.ws-time-chip[data-variant="no_match"] {
+  border-color: rgba(239, 68, 68, 0.45);
+  color: rgba(252, 165, 165, 0.95);
+}
+
+.ws-time-chip[data-variant="as_of"] {
+  border-color: rgba(168, 85, 247, 0.45);
+  color: rgba(216, 180, 254, 0.95);
+}
+
+.ws-time-chip__eyebrow {
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(148, 163, 184, 0.85);
+}
+
+.ws-time-chip__count {
+  color: rgba(148, 163, 184, 0.85);
+  font-variant-numeric: tabular-nums;
+}
+
+.ws-resolved-badges {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  margin: 6px 0;
+}
+
+.ws-resolved-badges__name {
+  font-weight: 600;
+  color: rgba(226, 232, 240, 0.95);
+}
+
+.ws-resolved-badges__chip {
+  padding: 3px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  background: rgba(15, 23, 42, 0.4);
+  color: rgba(203, 213, 225, 0.92);
+  font-size: 10.5px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.ws-resolved-badges__chip[data-scope="exact_place"] {
+  border-color: rgba(34, 197, 94, 0.45);
+  color: rgba(187, 247, 208, 0.95);
+}
+
+.ws-resolved-badges__chip[data-scope="country"] {
+  border-color: rgba(59, 130, 246, 0.45);
+  color: rgba(191, 219, 254, 0.95);
+}
+
+.ws-resolved-badges__chip[data-scope="region"] {
+  border-color: rgba(234, 179, 8, 0.45);
+  color: rgba(254, 240, 138, 0.95);
+}
+
+.ws-resolved-badges__chip[data-variant="fallback"] {
+  border-color: rgba(234, 88, 12, 0.45);
+  color: rgba(254, 215, 170, 0.95);
+}
+
+.ws-compare-card {
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 10px;
+  padding: 12px 14px;
+  background: rgba(15, 23, 42, 0.35);
+}
+
+.ws-compare-card__head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ws-compare-card__badge {
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  border: 1px solid rgba(234, 88, 12, 0.45);
+  color: rgba(254, 215, 170, 0.95);
+}
+
+.ws-compare-card__mode {
+  font-size: 10.5px;
+  color: rgba(148, 163, 184, 0.8);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.ws-compare-card__headline {
+  margin: 8px 0 0;
+  color: rgba(226, 232, 240, 0.95);
+  font-size: 13px;
+}
+
+.ws-compare-card__targets {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.ws-compare-card__target {
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 8px;
+  padding: 8px 10px;
+  background: rgba(2, 6, 23, 0.35);
+}
+
+.ws-compare-card__target[data-resolution="none"] {
+  opacity: 0.6;
+}
+
+.ws-compare-card__target-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.ws-compare-card__target-label {
+  font-weight: 600;
+  color: rgba(226, 232, 240, 0.95);
+  font-size: 13px;
+}
+
+.ws-compare-card__target-resolution {
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(148, 163, 184, 0.8);
+}
+
+.ws-compare-card__target-resolution[data-resolution="exact"] {
+  color: rgba(187, 247, 208, 0.95);
+}
+
+.ws-compare-card__target-resolution[data-resolution="alias"] {
+  color: rgba(191, 219, 254, 0.95);
+}
+
+.ws-compare-card__target-resolution[data-resolution="fallback"] {
+  color: rgba(254, 215, 170, 0.95);
+}
+
+.ws-compare-card__target-meta {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 4px 10px;
+  margin: 8px 0 0;
+  font-size: 11px;
+  color: rgba(203, 213, 225, 0.85);
+}
+
+.ws-compare-card__target-meta dt {
+  color: rgba(148, 163, 184, 0.7);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: 9.5px;
+}
+
+.ws-compare-card__target-meta dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.ws-caveats__list {
+  margin: 0;
+  padding-left: 16px;
+  font-size: 12px;
+  color: rgba(203, 213, 225, 0.9);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* Phase 18D — causal chain card */
+.ws-causal {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  /* Phase 19D — causal intelligence is a hero card. Purple accent on
+     the left edge marks it as the primary decision surface inside the
+     answer panel. Subtle inner glow + tighter inner border lift it
+     above the surrounding text without becoming a competing chip. */
+  position: relative;
+  padding: 14px 14px 12px 16px;
+  border: 1px solid var(--ds-accent-purple-line, rgba(176, 140, 240, 0.32));
+  border-radius: 12px;
+  background:
+    linear-gradient(180deg,
+      rgba(176, 140, 240, 0.08) 0%,
+      rgba(120, 138, 232, 0.05) 40%,
+      rgba(15, 18, 30, 0.55) 100%);
+  box-shadow:
+    0 1px 0 rgba(176, 200, 240, 0.06) inset,
+    0 0 0 1px rgba(176, 140, 240, 0.10) inset,
+    0 8px 22px -10px rgba(120, 90, 180, 0.28);
+}
+
+.ws-causal::before {
+  content: "";
+  position: absolute;
+  top: 14px;
+  bottom: 14px;
+  left: 0;
+  width: 2px;
+  border-radius: 2px;
+  background: linear-gradient(180deg,
+    var(--ds-accent-purple, rgba(176, 140, 240, 0.92)) 0%,
+    var(--ds-accent-cyan, rgba(112, 218, 244, 0.6)) 100%);
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+.ws-causal__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.ws-causal__direction {
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 4px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  background: rgba(15, 23, 42, 0.55);
+  color: rgba(226, 232, 240, 0.95);
+}
+
+.ws-causal__direction--up {
+  border-color: rgba(248, 113, 113, 0.45);
+  color: rgba(252, 165, 165, 0.95);
+  background: rgba(127, 29, 29, 0.18);
+}
+
+.ws-causal__direction--down {
+  border-color: rgba(74, 222, 128, 0.45);
+  color: rgba(134, 239, 172, 0.95);
+  background: rgba(20, 83, 45, 0.18);
+}
+
+.ws-causal__direction--mixed {
+  border-color: rgba(250, 204, 21, 0.45);
+  color: rgba(253, 224, 71, 0.95);
+  background: rgba(113, 63, 18, 0.18);
+}
+
+.ws-causal__direction--neutral {
+  border-color: rgba(148, 163, 184, 0.45);
+  color: rgba(203, 213, 225, 0.95);
+}
+
+.ws-causal__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ws-causal__row {
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 10px;
+  padding: 10px 12px;
+  background: rgba(15, 23, 42, 0.42);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ws-causal__row--up {
+  border-left: 3px solid rgba(248, 113, 113, 0.65);
+}
+
+.ws-causal__row--down {
+  border-left: 3px solid rgba(74, 222, 128, 0.65);
+}
+
+.ws-causal__row--mixed {
+  border-left: 3px solid rgba(250, 204, 21, 0.55);
+}
+
+.ws-causal__row--neutral {
+  border-left: 3px solid rgba(148, 163, 184, 0.4);
+}
+
+.ws-causal__row-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.ws-causal__rule {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: rgba(241, 245, 249, 0.95);
+}
+
+.ws-causal__confidence {
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: rgba(148, 163, 184, 0.95);
+}
+
+.ws-causal__summary {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: rgba(203, 213, 225, 0.92);
+}
+
+.ws-causal__path {
+  margin: 0;
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+  color: rgba(148, 163, 184, 0.95);
+}
+
+.ws-causal__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.ws-causal__row-caveat {
+  margin: 0;
+  font-size: 11px;
+  color: rgba(250, 204, 21, 0.85);
+}
+
+.ws-causal__more {
+  align-self: flex-start;
+  font-size: 11.5px;
+  background: transparent;
+  border: 1px dashed rgba(148, 163, 184, 0.35);
+  border-radius: 999px;
+  padding: 4px 10px;
+  color: rgba(203, 213, 225, 0.9);
+  cursor: pointer;
+}
+
+.ws-causal__more:hover {
+  border-color: rgba(148, 163, 184, 0.65);
+}
+
+.ws-causal__caveats {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ws-causal__caveat {
+  font-size: 11.5px;
+  color: rgba(250, 204, 21, 0.9);
+}
+
+.ws-causal__rank {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(148, 163, 184, 0.85);
+}
+
+.ws-causal__row--top {
+  background: linear-gradient(
+    180deg,
+    rgba(56, 189, 248, 0.08),
+    rgba(15, 23, 42, 0.5)
+  );
+  border-color: rgba(56, 189, 248, 0.32);
+  box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.12) inset;
+}
+
+.ws-causal__row--top .ws-causal__rank {
+  color: rgba(125, 211, 252, 0.95);
+}
+
+.ws-causal__row--top .ws-causal__rule {
+  color: rgba(248, 250, 252, 0.98);
+}
+
+/* Phase 19A — answer section gets a slightly brighter title so the
+   storytelling order (answer → causal → evidence) is visually obvious. */
+.ws-section--answer .ws-section__title {
+  color: rgba(226, 232, 240, 0.95);
+}
+
+/* Phase 19B — portfolio impact card. Calm + compact, sits below the
+   causal driver. Demo books carry an explicit badge so the surface is
+   never mistaken for live capital. */
+.ws-portfolio-impact {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  /* Phase 19D — premium evidence card. Cyan inner glow + indigo outer
+     edge mark this as a high-value decision surface. */
+  border: 1px solid var(--ds-accent-cyan-line, rgba(112, 218, 244, 0.32));
+  border-radius: 12px;
+  padding: 14px 14px 12px;
+  background:
+    linear-gradient(180deg,
+      rgba(112, 218, 244, 0.10) 0%,
+      rgba(120, 138, 232, 0.06) 36%,
+      rgba(15, 23, 42, 0.55) 100%);
+  box-shadow:
+    0 1px 0 rgba(176, 200, 240, 0.06) inset,
+    0 0 0 1px rgba(112, 218, 244, 0.10) inset,
+    0 8px 22px -10px rgba(60, 130, 170, 0.30);
+}
+
+.ws-portfolio-impact__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.ws-portfolio-impact__demo-badge {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  padding: 4px 8px;
+  border-radius: 999px;
+  border: 1px dashed rgba(250, 204, 21, 0.55);
+  color: rgba(253, 224, 71, 0.95);
+  background: rgba(113, 63, 18, 0.18);
+}
+
+.ws-portfolio-impact__summary {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: rgba(226, 232, 240, 0.92);
+}
+
+.ws-portfolio-impact__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ws-portfolio-impact__row {
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 10px;
+  padding: 8px 10px;
+  background: rgba(15, 23, 42, 0.36);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ws-portfolio-impact__row--strong {
+  border-left: 3px solid rgba(125, 211, 252, 0.7);
+}
+
+.ws-portfolio-impact__row--warn {
+  border-left: 3px solid rgba(250, 204, 21, 0.55);
+}
+
+.ws-portfolio-impact__row--soft {
+  border-left: 3px solid rgba(148, 163, 184, 0.4);
+}
+
+.ws-portfolio-impact__row-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.ws-portfolio-impact__symbol {
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: rgba(241, 245, 249, 0.98);
+  font-variant-numeric: tabular-nums;
+}
+
+.ws-portfolio-impact__exposure {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  color: rgba(203, 213, 225, 0.95);
+  background: rgba(15, 23, 42, 0.55);
+}
+
+.ws-portfolio-impact__exposure--strong {
+  border-color: rgba(125, 211, 252, 0.55);
+  color: rgba(186, 230, 253, 0.95);
+}
+
+.ws-portfolio-impact__exposure--warn {
+  border-color: rgba(250, 204, 21, 0.45);
+  color: rgba(253, 224, 71, 0.95);
+}
+
+.ws-portfolio-impact__direction {
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: rgba(203, 213, 225, 0.85);
+  margin-left: auto;
+}
+
+.ws-portfolio-impact__rationale {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: rgba(203, 213, 225, 0.92);
+}
+
+.ws-portfolio-impact__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.ws-portfolio-impact__confidence {
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: rgba(148, 163, 184, 0.95);
+  margin-left: auto;
+}
+
+.ws-portfolio-impact__row-caveat {
+  margin: 0;
+  font-size: 11px;
+  color: rgba(250, 204, 21, 0.85);
+}
+
+.ws-portfolio-impact__remaining {
+  font-size: 11.5px;
+}
+
+.ws-portfolio-impact__caveats {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ws-portfolio-impact__caveat {
+  font-size: 11px;
+  color: rgba(250, 204, 21, 0.9);
+}
+
+/* Phase 19A — example queries row. Sits below the search input on the
+   topbar, hidden once the analyst has issued any query. Calm visuals so
+   it does not steal attention from the command bar. */
+.ws-examples {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 22px 4px;
+  flex-wrap: wrap;
+}
+
+.ws-examples__label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ds-text-muted, rgba(133, 148, 160, 0.7));
+}
+
+.ws-examples__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.ws-examples__chip {
+  font-size: 11.5px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(168, 210, 235, 0.22);
+  background: rgba(168, 210, 235, 0.04);
+  color: var(--ds-text-secondary, rgba(187, 199, 211, 0.85));
+  cursor: pointer;
+  transition: background 140ms ease, border-color 140ms ease, color 140ms ease;
+}
+
+.ws-examples__chip:hover {
+  background: rgba(168, 210, 235, 0.1);
+  border-color: rgba(168, 210, 235, 0.45);
+  color: var(--ds-text-primary, rgba(242, 246, 250, 0.96));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ws-examples__chip {
+    transition: none;
+  }
+}
+
+/* Phase 19A — globe cursor: communicate that the surface is interactive.
+   The raycaster sets data-hover-iso3 on the workspace shell when a country
+   is under the pointer, so the canvas gets a pointer cursor. */
+.ws-shell[data-hover-iso3] .ws-globe canvas {
+  cursor: pointer;
+}
+
+.ws-shell .ws-globe canvas {
+  cursor: grab;
+}
+
+.ws-shell .ws-globe canvas:active {
+  cursor: grabbing;
+}

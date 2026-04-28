@@ -1,0 +1,59 @@
+# Repo-root .dockerignore — keeps image builds fast by not sending junk
+# (node_modules, logs, caches) from your host into Docker.
+
+# Node / Next.js
+**/node_modules
+**/.next
+**/out
+**/.turbo
+
+# Python
+**/__pycache__
+**/*.pyc
+**/.pytest_cache
+**/.mypy_cache
+**/.ruff_cache
+**/.venv
+**/venv
+
+# Build + lockdir leftovers
+**/dist
+**/build
+**/coverage
+**/.nyc_output
+**/playwright-report
+**/test-results
+
+# Logs generated during local dev
+**/*.log
+**/*.out.txt
+**/*.err.txt
+**/*.out.log
+**/*.err.log
+
+# Editor / OS
+**/.vscode
+**/.idea
+**/.DS_Store
+**/Thumbs.db
+
+# VCS
+.git
+.gitignore
+.github
+
+# Secrets — NEVER ship these into images.
+# Permissive deny then re-allow .env.example so a new ".env.production"
+# or ".env.staging" cannot accidentally leak into a built image.
+.env
+.env.*
+**/.env
+**/.env.*
+!.env.example
+!**/.env.example
+**/*.pem
+**/*.key
+
+# Docs that don't belong in a running image
+**/*.md
+!README.md

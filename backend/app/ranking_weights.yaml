@@ -1,0 +1,23 @@
+# Phase 18B — retrieval ranking weights.
+#
+# All weights are floats in [0.0, 1.0]. They are not required to sum to 1;
+# the reranker normalises by their sum so analysts can express preferences
+# in absolute terms.  Edit and save — the WeightsLoader hot-reloads on the
+# next call (no service restart needed).
+
+freshness_weight: 0.35
+severity_weight: 0.25
+geo_weight: 0.20
+diversity_weight: 0.10
+semantic_weight: 0.10
+
+# Half-life (hours) for the freshness exponential decay used by the reranker.
+recency_half_life_hours: 6.0
+
+# Confidence calibration knobs. Same scale, same semantics — they weight
+# the five drivers of calibrated confidence.
+confidence_evidence_weight: 0.30
+confidence_agreement_weight: 0.20
+confidence_recency_weight: 0.20
+confidence_diversity_weight: 0.15
+confidence_resolution_weight: 0.15

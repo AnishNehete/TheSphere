@@ -1,0 +1,128 @@
+# Runs the whole stack locally: frontend (Next.js), backend (FastAPI),
+# postgres (with PostGIS), redis. One command brings them all up:
+#
+#   docker compose up --build
+#
+# Open:
+#   frontend: http://localhost:3000
+#   backend:  http://localhost:8000/api/intelligence/health
+services:
+  frontend:
+    build:
+      context: .
+      dockerfile: infra/docker/frontend.Dockerfile
+      args:
+        NEXT_PUBLIC_API_BASE_URL: http://localhost:8000
+        NEXT_PUBLIC_WS_BASE_URL: ws://localhost:8000
+        NEXT_PUBLIC_CESIUM_ION_TOKEN: ${NEXT_PUBLIC_CESIUM_ION_TOKEN:-}
+    ports:
+      - "3000:3000"
+    environment:
+      NEXT_PUBLIC_API_BASE_URL: http://localhost:8000
+      NEXT_PUBLIC_WS_BASE_URL: ws://localhost:8000
+      
+    depends_on:
+      - backend
+
+  backend:
+    build:
+      context: .
+      dockerfile: infra/docker/backend.Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      # Legacy SPHERE_* env — the existing simulator stack.
+      SPHERE_POSTGRES_DSN: postgresql://sphere:sphere@postgres:5432/sphere
+      SPHERE_REDIS_URL: redis://redis:6379/0
+      SPHERE_ENABLE_SIMULATOR: ${SPHERE_ENABLE_SIMULATOR:-true}
+      SPHERE_SIMULATION_INTERVAL_MS: ${SPHERE_SIMULATION_INTERVAL_MS:-2500}
+
+      # Phase 11 intelligence backbone — news, weather, stocks, etc.
+      INTELLIGENCE_ENV: ${INTELLIGENCE_ENV:-development}
+      INTELLIGENCE_ENABLE_OFFLINE_FALLBACK: ${INTELLIGENCE_ENABLE_OFFLINE_FALLBACK:-true}
+      INTELLIGENCE_INGEST_POLL_SECONDS: ${INTELLIGENCE_INGEST_POLL_SECONDS:-60}
+
+      # Phase 19E — wire the same Postgres / Redis the simulator already
+      # runs against into the intelligence runtime. Without these, the
+      # investigation + alert repos silently fall back to in-memory and
+      # nothing survives a restart.
+      INTELLIGENCE_DATABASE_URL: ${INTELLIGENCE_DATABASE_URL:-postgresql://sphere:sphere@postgres:5432/sphere}
+      INTELLIGENCE_REDIS_URL: ${INTELLIGENCE_REDIS_URL:-redis://redis:6379/1}
+
+      # Domain toggles (all default on).
+      INTELLIGENCE_ENABLE_WEATHER: ${INTELLIGENCE_ENABLE_WEATHER:-true}
+      INTELLIGENCE_ENABLE_NEWS: ${INTELLIGENCE_ENABLE_NEWS:-true}
+      INTELLIGENCE_ENABLE_FLIGHT: ${INTELLIGENCE_ENABLE_FLIGHT:-true}
+      INTELLIGENCE_ENABLE_CONFLICT: ${INTELLIGENCE_ENABLE_CONFLICT:-true}
+      INTELLIGENCE_ENABLE_DISEASE: ${INTELLIGENCE_ENABLE_DISEASE:-true}
+      INTELLIGENCE_ENABLE_MOOD: ${INTELLIGENCE_ENABLE_MOOD:-true}
+      INTELLIGENCE_ENABLE_STOCKS: ${INTELLIGENCE_ENABLE_STOCKS:-true}
+      INTELLIGENCE_ENABLE_COMMODITIES: ${INTELLIGENCE_ENABLE_COMMODITIES:-true}
+      INTELLIGENCE_ENABLE_CURRENCY: ${INTELLIGENCE_ENABLE_CURRENCY:-true}
+
+      # Provider keys (optional — all adapters have offline fallback).
+      INTELLIGENCE_WEATHER_API_KEY: ${INTELLIGENCE_WEATHER_API_KEY:-}
+      INTELLIGENCE_NEWS_API_KEY: ${INTELLIGENCE_NEWS_API_KEY:-}
+      INTELLIGENCE_STOCKS_API_KEY: ${INTELLIGENCE_STOCKS_API_KEY:-}
+      INTELLIGENCE_CURRENCY_API_KEY: ${INTELLIGENCE_CURRENCY_API_KEY:-}
+      INTELLIGENCE_COMMODITIES_API_KEY: ${INTELLIGENCE_COMMODITIES_API_KEY:-}
+      INTELLIGENCE_FLIGHT_API_KEY: ${INTELLIGENCE_FLIGHT_API_KEY:-}
+      INTELLIGENCE_CONFLICT_API_KEY: ${INTELLIGENCE_CONFLICT_API_KEY:-}
+      INTELLIGENCE_DISEASE_API_KEY: ${INTELLIGENCE_DISEASE_API_KEY:-}
+      INTELLIGENCE_MOOD_API_KEY: ${INTELLIGENCE_MOOD_API_KEY:-}
+
+      # Chart candle provider (powers /api/intelligence/market/{symbol}/candles
+      # and the 17A.1 posture engine). Phase 19E: default is now alphavantage
+      # so a populated INTELLIGENCE_ALPHA_VANTAGE_API_KEY produces live data
+      # without further config. With no key, the provider builder transparently
+      # falls back to a deterministic synthetic series and the frontend
+      # surfaces a "Demo data" chip on every chart.
+      INTELLIGENCE_MARKET_DATA_PROVIDER: ${INTELLIGENCE_MARKET_DATA_PROVIDER:-alphavantage}
+      INTELLIGENCE_POLYGON_API_KEY: ${INTELLIGENCE_POLYGON_API_KEY:-}
+      INTELLIGENCE_POLYGON_BASE_URL: ${INTELLIGENCE_POLYGON_BASE_URL:-https://api.polygon.io}
+      INTELLIGENCE_ALPHA_VANTAGE_API_KEY: ${INTELLIGENCE_ALPHA_VANTAGE_API_KEY:-}
+      INTELLIGENCE_ALPHA_VANTAGE_BASE_URL: ${INTELLIGENCE_ALPHA_VANTAGE_BASE_URL:-https://www.alphavantage.co}
+
+      # Phase 17A.3 — bounded agentic narrative on top of the
+      # deterministic posture envelope. Optional: when unset the
+      # backend returns a deterministic narrative with the same shape
+      # so the surface still works without a key.
+      INTELLIGENCE_ANTHROPIC_API_KEY: ${INTELLIGENCE_ANTHROPIC_API_KEY:-}
+      INTELLIGENCE_ANTHROPIC_MODEL: ${INTELLIGENCE_ANTHROPIC_MODEL:-claude-haiku-4-5-20251001}
+      INTELLIGENCE_ANTHROPIC_BASE_URL: ${INTELLIGENCE_ANTHROPIC_BASE_URL:-https://api.anthropic.com}
+      INTELLIGENCE_ANTHROPIC_REQUEST_TIMEOUT_SECONDS: ${INTELLIGENCE_ANTHROPIC_REQUEST_TIMEOUT_SECONDS:-12.0}
+
+      # Phase 17C beta-hardening — explicit CORS allowlist + rate-limit
+      # ceilings. CORS defaults to localhost; production deploys should
+      # set SPHERE_FRONTEND_ORIGINS to a comma-separated allowlist.
+      SPHERE_FRONTEND_ORIGIN: ${SPHERE_FRONTEND_ORIGIN:-http://localhost:3000}
+      SPHERE_FRONTEND_ORIGINS: ${SPHERE_FRONTEND_ORIGINS:-}
+      INTELLIGENCE_SHARE_READ_RATE_PER_HOUR: ${INTELLIGENCE_SHARE_READ_RATE_PER_HOUR:-60}
+      INTELLIGENCE_INVESTIGATION_SAVE_RATE_PER_HOUR: ${INTELLIGENCE_INVESTIGATION_SAVE_RATE_PER_HOUR:-30}
+      INTELLIGENCE_ALERT_RULE_CREATE_RATE_PER_HOUR: ${INTELLIGENCE_ALERT_RULE_CREATE_RATE_PER_HOUR:-30}
+    restart: unless-stopped
+    depends_on:
+      - redis
+      - postgres
+
+  redis:
+    image: redis:8-alpine
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+
+  postgres:
+    image: postgis/postgis:17-3.5
+    environment:
+      POSTGRES_DB: sphere
+      POSTGRES_USER: sphere
+      POSTGRES_PASSWORD: sphere
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./infra/postgres/init:/docker-entrypoint-initdb.d
+    restart: unless-stopped
+
+volumes:
+  postgres-data:

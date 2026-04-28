@@ -1,0 +1,34 @@
+# Dev override — pairs with the base docker-compose.yml.
+#
+# Use:
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+#
+# What it changes:
+#   * Frontend uses frontend.dev.Dockerfile (no `pnpm build` baked in).
+#   * Host frontend/ source is bind-mounted into the container so saves
+#     trigger Next.js hot reload immediately. No image rebuild needed.
+#   * node_modules is kept inside a named volume so the host's node_modules
+#     (or absence of one on Windows) doesn't shadow the container install.
+#   * .next is also a named volume — it's container-only build output and
+#     should never be shared with the host.
+#
+# Backend / postgres / redis are unchanged.
+
+services:
+  frontend:
+    build:
+      context: .
+      dockerfile: infra/docker/frontend.dev.Dockerfile
+    volumes:
+      - ./frontend:/app/frontend
+      - frontend_node_modules:/app/frontend/node_modules
+      - frontend_next_cache:/app/frontend/.next
+    environment:
+      CHOKIDAR_USEPOLLING: "true"
+      WATCHPACK_POLLING: "true"
+      NODE_ENV: development
+    command: ["pnpm", "dev", "--hostname", "0.0.0.0", "--port", "3000"]
+
+volumes:
+  frontend_node_modules:
+  frontend_next_cache:

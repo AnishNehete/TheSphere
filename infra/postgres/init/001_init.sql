@@ -1,0 +1,34 @@
+CREATE EXTENSION IF NOT EXISTS postgis;
+
+CREATE TABLE IF NOT EXISTS events (
+  id UUID PRIMARY KEY,
+  type TEXT NOT NULL,
+  lat DOUBLE PRECISION NOT NULL,
+  lon DOUBLE PRECISION NOT NULL,
+  severity DOUBLE PRECISION NOT NULL,
+  timestamp TIMESTAMPTZ NOT NULL,
+  metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
+  geom GEOGRAPHY(POINT, 4326) NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_events_timestamp ON events (timestamp DESC);
+CREATE INDEX IF NOT EXISTS idx_events_type ON events (type);
+CREATE INDEX IF NOT EXISTS idx_events_geom ON events USING GIST (geom);
+
+CREATE TABLE IF NOT EXISTS regions (
+  id UUID PRIMARY KEY,
+  slug TEXT UNIQUE NOT NULL,
+  name TEXT NOT NULL,
+  geojson JSONB NOT NULL,
+  centroid GEOGRAPHY(POINT, 4326) NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS metrics (
+  id UUID PRIMARY KEY,
+  region TEXT NOT NULL,
+  layer TEXT NOT NULL,
+  value DOUBLE PRECISION NOT NULL,
+  timestamp TIMESTAMPTZ NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_metrics_region_layer ON metrics (region, layer, timestamp DESC);

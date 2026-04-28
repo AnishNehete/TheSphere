@@ -1,0 +1,26 @@
+{
+  "day": {
+    "path": "/earth/day.jpg",
+    "ktx2": null
+  },
+  "night": {
+    "path": "/earth/night.jpg",
+    "ktx2": null
+  },
+  "normal": {
+    "path": "/earth/normal.jpg",
+    "ktx2": null
+  },
+  "specular": {
+    "path": "/earth/specular.jpg",
+    "ktx2": null
+  },
+  "clouds": {
+    "path": "/earth/clouds.png",
+    "ktx2": null
+  },
+  "stars": {
+    "path": "/earth/stars.jpg",
+    "ktx2": null
+  }
+}
