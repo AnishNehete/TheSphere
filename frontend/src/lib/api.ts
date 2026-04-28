@@ -44,10 +44,17 @@ interface ApiQueryResult {
 }
 
 function getApiBaseUrl() {
+  // Priority 1: NEXT_PUBLIC_API_BASE_URL
   if (process.env.NEXT_PUBLIC_API_BASE_URL) {
     return process.env.NEXT_PUBLIC_API_BASE_URL;
   }
 
+  // Priority 2: NEXT_PUBLIC_API_URL
+  if (process.env.NEXT_PUBLIC_API_URL) {
+    return process.env.NEXT_PUBLIC_API_URL;
+  }
+
+  // Priority 3: localhost for development
   if (typeof window !== "undefined") {
     return `${window.location.protocol}//${window.location.hostname}:8000`;
   }
