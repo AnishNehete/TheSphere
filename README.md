@@ -683,12 +683,6 @@ Sphere | Real-Time Geospatial Intelligence Platform
 
 Next.js, TypeScript, React Three Fiber, FastAPI, PostgreSQL/PostGIS, Redis, Docker
 
-Architected and deployed a full-stack global intelligence platform that fuses live market, geopolitical, weather, and risk signals into a search-first 3D investigation workflow, enabling users to query global events and receive causal, evidence-backed insights in real time.
-Engineered backend intelligence systems for entity resolution, scoped retrieval, calibrated ranking, and causal-chain reasoning, transforming raw multi-domain signals into explainable “why-driven” outputs with confidence scoring and portfolio-impact mapping.
-Built a hybrid AI pipeline separating deterministic retrieval logic from LLM-based narrative generation, reducing hallucinations while preserving interpretability across financial, geospatial, and macroeconomic queries.
-Implemented production-grade infrastructure with PostgreSQL/PostGIS persistence, Redis caching and rate-limiting, provider health tracking, and Dockerized deployment, supporting live/cached/synthetic data states with explicit transparency.
-Developed an interactive 3D globe using Three.js and React Three Fiber with custom shaders (atmospheric scattering, volumetric clouds, night lighting, starfield) to visualize flights, conflicts, health, and news signals as spatial intelligence layers.
----
 Sphere is a real-time geospatial intelligence platform that fuses world signals, market data, calibrated retrieval, causal-chain reasoning, and portfolio-impact analysis into a search-first investigation workflow.
 
 It demonstrates:
